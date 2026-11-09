@@ -15,7 +15,7 @@
 <p align="center">
   <img alt="Windows 10 | 11 (x64)" src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-0078D4">
   <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-512BD4">
-  <img alt="Version 0.2.0" src="https://img.shields.io/badge/version-0.2.0-2EA043">
+  <img alt="Version 0.3.0" src="https://img.shields.io/badge/version-0.3.0-2EA043">
   <img alt="Statut : en développement" src="https://img.shields.io/badge/statut-en%20d%C3%A9veloppement-orange">
 </p>
 
@@ -56,7 +56,7 @@ service sur la machine de développement), pour en faire un produit installable 
 
 ## Disponible aujourd'hui, et feuille de route
 
-**Version 0.2.0 — socle et moteur.** Ce qui fonctionne aujourd'hui :
+**Version 0.3.0 — socle, moteur et modules système.** Ce qui fonctionne aujourd'hui :
 
 - une application discrète dans la **zone de notification** (à côté de l'horloge), qui ne se lance
   qu'une fois même si vous la rouvrez ;
@@ -75,14 +75,27 @@ service sur la machine de développement), pour en faire un produit installable 
 - tableau de bord en direct, avec les jauges colorées selon ces seuils ;
 - file de décisions (approuver, rejeter, reporter), historique local et journal, avec purge automatique.
 
-> À ce stade, Facil FreePC **mesure et surveille, mais ne libère encore aucune ressource** : les modules
-> qui proposent et appliquent les actions (disque, navigateurs, IA…) arrivent avec les phases suivantes.
+**Modules système (Phase 2)** — ils libèrent réellement des ressources :
+
+| Module | Automatique (sans risque) | Proposé (votre décision) |
+|---|---|---|
+| **Disque** | Zones temporaires sûres : dossiers laissés par les installeurs (toutes les heures), temporaires, dumps de plantage, journaux (chaque jour) | Sous le seuil d'alerte : cache npm, corbeille, temporaires du système (UAC) |
+| **Maintenance Windows** | — | Redémarrage en attente depuis plus de 12 h (critique, annulable), cache Windows Update et nettoyage DISM (UAC) — jamais pendant un redémarrage en attente |
+| **Docker / WSL** (si présents) | Arrêt de la machine virtuelle restée allumée sans Docker, récupération de l'espace libéré à l'intérieur de Docker, mesure de son contenu | Purge du cache de build et des images inutilisées (jamais les volumes), compactage du disque Docker quand l'espace mort réel le justifie (UAC) |
+| **Applications** | Inventaire des applications, de ce qui démarre avec Windows (Run, dossiers Démarrage, services, tâches de connexion) et de leur consommation | Désactiver le démarrage automatique d'une application gourmande en arrière-plan (réversible, comme le Gestionnaire des tâches), arrêter ses processus sans fenêtre, passer un service tiers en démarrage manuel (UAC) |
+
+Jamais touchés : les composants Windows, les logiciels de sécurité, les pilotes (audio, saisie, graphiques)
+et Facil FreePC lui-même. Une action qui exige l'administrateur déclenche une demande UAC pour elle seule ;
+si vous la refusez, la proposition reste en attente.
+
+> À ce stade, les propositions sont visibles dans le tableau de bord ; les **boutons de décision** et les
+> notifications arrivent avec l'interface complète (Phase 5).
 
 | Phase | Contenu | Statut |
 |---|---|---|
 | **0 — Socle** | Application de notification, fenêtre WebView2, serveur local sécurisé, installateur, désinstallation propre | Terminée |
 | **1 — Moteur** | Mesures de la mémoire et du disque, profil automatique du PC avec seuils adaptés à sa mémoire, file de décisions (approuver, rejeter, reporter), journal et historique | Terminée |
-| **2 — Modules système** | Nettoyage du disque limité aux zones sûres, maintenance Windows Update (avec accord UAC), Docker et WSL s'ils sont présents, inventaire des applications et de ce qui démarre avec Windows | À venir |
+| **2 — Modules système** | Nettoyage du disque limité aux zones sûres, maintenance Windows Update (avec accord UAC), Docker et WSL s'ils sont présents, inventaire des applications et de ce qui démarre avec Windows | Terminée |
 | **3 — Navigateurs** | Détection de Firefox, Chrome, Edge, Brave, Opera et Vivaldi ; mise en veille automatique des onglets inactifs ; redémarrage propre du navigateur sur votre clic, avec contrôle de la restauration de session | À venir |
 | **4 — IA** | Détection des applications d'IA, modèles chargés, mémoire vidéo et disque ; propositions de décharger un modèle inactif ou d'arrêter un serveur inutilisé (jamais de suppression) | À venir |
 | **5 — Interface** | Tableau de bord sans défilement (santé, décisions, actions faites, applications, navigateurs, IA, historique), écran « Comment ça marche », notifications Windows | À venir |
@@ -103,7 +116,7 @@ Chaque installateur `FacilFreePC-Setup-<version>.exe` est accompagné d'un fichi
 son empreinte. Avant d'installer, comparez-la avec celle du fichier téléchargé :
 
 ```powershell
-Get-FileHash .\FacilFreePC-Setup-0.2.0.exe -Algorithm SHA256
+Get-FileHash .\FacilFreePC-Setup-0.3.0.exe -Algorithm SHA256
 ```
 
 Les deux empreintes doivent être **strictement identiques**. Sinon, n'exécutez pas le fichier.
@@ -188,7 +201,8 @@ Tests seuls : `dotnet test FreeRes.sln`.
 
 | Élément | Rôle |
 |---|---|
-| `src/FreeRes.Core` | Identité, chemins de données ; **moteur** : mesures natives sans WMI (`Metrics`), profil machine (`Machine`), seuils relatifs, réglages et politique d'escalade (`Policy`), liste fermée d'actions et répartiteur (`Actions`), boîte de décisions (`Decisions`), stockage SQLite versionné (`Storage`), journal JSONL (`Logging`), cycle de surveillance et assemblage (`Engine`) |
+| `src/FreeRes.Core` | Identité, chemins de données ; **moteur** : mesures natives sans WMI (`Metrics`), profil machine (`Machine`), seuils relatifs, réglages et politique d'escalade (`Policy`), liste fermée d'actions, répartiteur et protocole d'élévation UAC (`Actions`), boîte de décisions (`Decisions`), stockage SQLite versionné (`Storage`), journal JSONL (`Logging`), lanceur de programmes à arguments séparés et entrée standard (`Platform`), cycle de surveillance et assemblage (`Engine`) |
+| `src/FreeRes.Modules` | Modules et leurs actions : `Disk` (nettoyeur sûr `SafeCleaner` + suppression par handle `SecureDelete`), `Windows` (maintenance), `Docker` (WSL/VHDX), `Apps` (inventaire, démarrage, services) ; `ModulePack` les assemble |
 | `src/FreeRes.Host` | Serveur Kestrel sur **127.0.0.1** (port choisi par le système), middleware de sécurité, boucle de surveillance en arrière-plan, API (`/api/health`, `/api/state`), interface embarquée (`wwwroot`) |
 | `src/FreeRes.App` | `FacilFreePC.exe` : instance unique, icône de notification, fenêtre WebView2 avec profil dédié |
 | `tests/FreeRes.*.Tests` | xUnit : Core, sécurité du serveur par requêtes HTTP réelles, coquille Windows (instance unique, dimensionnement de la fenêtre) |
@@ -208,6 +222,7 @@ Arguments de `FacilFreePC.exe` :
 | *(aucun)* | Démarre et ouvre la fenêtre ; si une instance tourne déjà, c'est elle qui s'affiche |
 | `--background` | Démarre dans la zone de notification sans ouvrir la fenêtre (utilisé à l'ouverture de session) |
 | `--quit` | Demande à l'instance en cours de se fermer et **attend sa fin réelle** (15 s au plus) ; code 1 si elle ne s'est pas fermée |
+| `--run-action <requête> --result <fichier>` | Usage interne : relance **élevée** (UAC) pour exécuter **une** action administrateur de la liste fermée. La requête (base64url) est sur la ligne de commande, donc visible dans la fenêtre UAC ; toute action non administrateur est refusée ; le résultat n'est écrit que dans `%LOCALAPPDATA%\FacilFreePC\elevation\<guid>.json` |
 
 Données : `%LOCALAPPDATA%\FacilFreePC` — `freeres.db` (SQLite : historique, propositions, décisions,
 état), `logs\events-AAAA-MM.jsonl` (journal), `WebView2\` (profil de la fenêtre) et, facultatif,
@@ -245,9 +260,21 @@ réponses portent une CSP stricte, `X-Content-Type-Options: nosniff`, `X-Frame-O
 développement (sauf sous débogueur), le menu contextuel et la saisie automatique sont désactivés, et toute navigation hors de
 l'interface locale est renvoyée vers le navigateur par défaut.
 
-L'exe est lancé avec le niveau `asInvoker` (`app.manifest`) : jamais d'élévation au démarrage. Les
-actions administrateur prévues dans les phases suivantes relanceront l'exe en `runas` pour **une**
-action typée, sans service système permanent.
+L'exe est lancé avec le niveau `asInvoker` (`app.manifest`) : jamais d'élévation au démarrage. Une
+action administrateur approuvée relance l'exe en `runas` pour **une** action typée, sans service système
+permanent ; les actions automatiques ne demandent jamais d'élévation.
+
+### Sécurité des actions exécutées en administrateur
+
+- **Suppression par handle** (`SecureDelete`) : chaque élément est ouvert sans suivre les liens, son chemin
+  **réel** est lu par le handle et doit rester sous la racine autorisée, puis il est supprimé par ce handle.
+  Un dossier remplacé par une jonction vers `C:\Windows\System32` entre la vérification et la suppression
+  (attaque TOCTOU classique des nettoyeurs) est donc refusé. Vérifié par un test et par mutation.
+- **Aucun fichier de script** : les programmes lancés en administrateur reçoivent leurs commandes par leur
+  entrée standard (ex. `diskpart`) ; un script déposé dans `%TEMP%` pourrait être remplacé avant sa lecture.
+- **Garde-fous à la construction** (`ArchitectureGuardTests`) : le code des modules ne doit utiliser ni
+  `%TEMP%` (sauf lecture déclarée sur la ligne par `garde-fou-temp: lecture seule`), ni lancement direct de
+  processus (tout passe par `IProcessRunner`, arguments séparés), ni WMI.
 
 ### Distribution sans certificat (risque accepté)
 
