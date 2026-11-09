@@ -508,19 +508,13 @@ public sealed class DockerModule : IResourceModule, IActionObserver
         return new ActionOutcome(true, string.Create(CultureInfo.InvariantCulture, $"VHDX {DockerParsers.ToGB(before)} -> {DockerParsers.ToGB(after)} GB"));
     }
 
-    private async Task<ProcessResult> RunDiskpartAsync(string diskpart, string script, TimeSpan timeout, CancellationToken ct)
-    {
-        var file = Path.Combine(Path.GetTempPath(), $"freeres-diskpart-{Guid.NewGuid():N}.txt");
-        await File.WriteAllTextAsync(file, script, Encoding.ASCII, ct).ConfigureAwait(false);
-        try
-        {
-            return await _processes.RunAsync(diskpart, ["/s", file], timeout, ct).ConfigureAwait(false);
-        }
-        finally
-        {
-            File.Delete(file);
-        }
-    }
+    /// <summary>
+    /// Script transmis par l'ENTREE STANDARD, jamais par fichier : cette action s'execute en administrateur, et un
+    /// fichier de script dans %TEMP% (modifiable par l'utilisateur) pourrait etre remplace entre son ecriture et
+    /// sa lecture par diskpart (ex. « select disk 0 / clean » : effacement du disque avec les droits admin).
+    /// </summary>
+    private Task<ProcessResult> RunDiskpartAsync(string diskpart, string script, TimeSpan timeout, CancellationToken ct) =>
+        _processes.RunAsync(diskpart, [], timeout, ct, standardInput: script);
 
     // Script ecrit en ASCII : un caractere non ASCII serait altere, un guillemet casserait la commande.
     private static bool IsScriptSafe(string path) => path.All(c => c is >= ' ' and <= '~' && c != '"');

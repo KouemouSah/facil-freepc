@@ -450,14 +450,10 @@ public sealed class DockerModuleTests : IDisposable
     public async Task CompactDockerVhdx_arrete_WSL_puis_lance_diskpart_avec_le_bon_script()
     {
         _host.VhdxBytes = 14 * GB;
-        string? script = null;
-        string? scriptFile = null;
-        _processes.Respond = (file, args) =>
+        _processes.Respond = (file, _) =>
         {
             if (file.EndsWith("diskpart.exe", StringComparison.OrdinalIgnoreCase))
             {
-                scriptFile = args[1];
-                script = File.ReadAllText(scriptFile);
                 _host.VhdxBytes = 8 * GB;
             }
 
@@ -471,24 +467,25 @@ public sealed class DockerModuleTests : IDisposable
         Assert.Equal(["--shutdown"], _processes.Calls[0].Args);
         Assert.Equal(@"C:\fake\wsl.exe", _processes.Calls[0].File);
         Assert.Equal(Path.Combine(Environment.SystemDirectory, "diskpart.exe"), _processes.Calls[1].File);
-        Assert.Equal("/s", _processes.Calls[1].Args[0]);
+        // Securite : AUCUN fichier de script (un fichier dans %TEMP% pourrait etre remplace avant sa lecture par
+        // diskpart lance en admin) : pas d'argument « /s », script transmis par l'entree standard.
+        Assert.Empty(_processes.Calls[1].Args);
         Assert.Equal(
             $"select vdisk file=\"{FakeDockerHost.Vhdx}\"\r\nattach vdisk readonly\r\ncompact vdisk\r\ndetach vdisk\r\n",
-            script);
-        Assert.False(File.Exists(scriptFile));   // script temporaire supprime
+            _processes.Inputs[1]);
     }
 
     [Fact]
     public async Task CompactDockerVhdx_en_echec_detache_le_VHDX()
     {
         _host.VhdxBytes = 14 * GB;
-        var scripts = new List<string>();
-        _processes.Respond = (file, args) =>
+        var diskpartCalls = 0;
+        _processes.Respond = (file, _) =>
         {
             if (file.EndsWith("diskpart.exe", StringComparison.OrdinalIgnoreCase))
             {
-                scripts.Add(File.ReadAllText(args[1]));
-                return new ProcessResult(scripts.Count == 1 ? 2 : 0, string.Empty, string.Empty, false);
+                diskpartCalls++;
+                return new ProcessResult(diskpartCalls == 1 ? 2 : 0, string.Empty, string.Empty, false);
             }
 
             return new ProcessResult(0, string.Empty, string.Empty, false);
@@ -497,7 +494,8 @@ public sealed class DockerModuleTests : IDisposable
         var outcome = await Catalog().Resolve(ActionRequest.Of(DockerModule.CompactDockerVhdx)).Execute(ActionRequest.Of(DockerModule.CompactDockerVhdx), false, default);
         Assert.False(outcome.Ok);
         Assert.Contains("diskpart a echoue (code 2", outcome.Message, StringComparison.Ordinal);
-        Assert.Equal($"select vdisk file=\"{FakeDockerHost.Vhdx}\"\r\ndetach vdisk\r\n", scripts[1]);
+        Assert.Equal(2, diskpartCalls);
+        Assert.Equal($"select vdisk file=\"{FakeDockerHost.Vhdx}\"\r\ndetach vdisk\r\n", _processes.Inputs[^1]);
     }
 
     [Fact]

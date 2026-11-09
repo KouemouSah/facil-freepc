@@ -47,11 +47,15 @@ internal sealed class FakeProcessRunner : IProcessRunner
 {
     public List<(string File, IReadOnlyList<string> Args)> Calls { get; } = [];
 
+    /// <summary>Entree standard recue par chaque appel (null si aucune), dans l'ordre des appels.</summary>
+    public List<string?> Inputs { get; } = [];
+
     public Func<string, IReadOnlyList<string>, ProcessResult> Respond { get; set; } = (_, _) => new ProcessResult(0, string.Empty, string.Empty, false);
 
-    public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, TimeSpan timeout, CancellationToken cancellationToken, Encoding? outputEncoding = null)
+    public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, TimeSpan timeout, CancellationToken cancellationToken, Encoding? outputEncoding = null, string? standardInput = null)
     {
         Calls.Add((fileName, arguments));
+        Inputs.Add(standardInput);
         return Task.FromResult(Respond(fileName, arguments));
     }
 }

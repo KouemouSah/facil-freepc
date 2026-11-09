@@ -39,6 +39,26 @@ public sealed class RealMachineTests
     }
 
     [Fact]
+    public async Task Lanceur_transmet_l_entree_standard_sans_fichier_intermediaire()
+    {
+        // findstr recopie les lignes recues sur son entree standard : preuve que le texte passe par le flux.
+        var r = await new Platform.ProcessRunner().RunAsync(
+            Path.Combine(Environment.SystemDirectory, "findstr.exe"), ["."], TimeSpan.FromSeconds(20), default, standardInput: "commande-1\r\ncommande-2\r\n");
+        Assert.Equal(0, r.ExitCode);
+        Assert.Contains("commande-1", r.StdOut, StringComparison.Ordinal);
+        Assert.Contains("commande-2", r.StdOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Lanceur_arguments_separes_sans_interpretation_par_un_shell()
+    {
+        // Un parametre contenant « & » n'est jamais interprete : findstr le recherche litteralement.
+        var r = await new Platform.ProcessRunner().RunAsync(
+            Path.Combine(Environment.SystemDirectory, "findstr.exe"), ["/L", "a&b"], TimeSpan.FromSeconds(20), default, standardInput: "x a&b y\r\nautre\r\n");
+        Assert.Equal("x a&b y", r.StdOut.Trim());
+    }
+
+    [Fact]
     public void Aucune_dependance_a_WMI()
     {
         var refs = typeof(AppInfo).Assembly.GetReferencedAssemblies().Select(a => a.Name);

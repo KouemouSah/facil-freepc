@@ -9,7 +9,12 @@ public sealed record ProcessResult(int ExitCode, string StdOut, string StdErr, b
 /// <summary>Lancement de programmes externes (dism, shutdown, docker, wsl...).</summary>
 public interface IProcessRunner
 {
-    Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, TimeSpan timeout, CancellationToken cancellationToken, Encoding? outputEncoding = null);
+    /// <param name="standardInput">
+    /// Texte envoye sur l'entree standard puis fermee. A PREFERER a un fichier de script pour un programme lance
+    /// en administrateur : un fichier dans un dossier modifiable par l'utilisateur pourrait etre remplace entre
+    /// son ecriture et sa lecture (ex. script diskpart transforme en « clean » du disque).
+    /// </param>
+    Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, TimeSpan timeout, CancellationToken cancellationToken, Encoding? outputEncoding = null, string? standardInput = null);
 }
 
 /// <summary>
@@ -18,7 +23,7 @@ public interface IProcessRunner
 /// </summary>
 public sealed class ProcessRunner : IProcessRunner
 {
-    public async Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, TimeSpan timeout, CancellationToken cancellationToken, Encoding? outputEncoding = null)
+    public async Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, TimeSpan timeout, CancellationToken cancellationToken, Encoding? outputEncoding = null, string? standardInput = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentNullException.ThrowIfNull(arguments);
@@ -27,6 +32,7 @@ public sealed class ProcessRunner : IProcessRunner
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            RedirectStandardInput = standardInput is not null,
             CreateNoWindow = true,
         };
         if (outputEncoding is not null)
@@ -48,6 +54,12 @@ public sealed class ProcessRunner : IProcessRunner
         catch (System.ComponentModel.Win32Exception ex)
         {
             return new ProcessResult(-2, string.Empty, ex.Message, false);
+        }
+
+        if (standardInput is not null)
+        {
+            await process.StandardInput.WriteAsync(standardInput.AsMemory(), cancellationToken).ConfigureAwait(false);
+            process.StandardInput.Close();   // fin de flux : le programme sait qu'il n'y a plus de commande
         }
 
         var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
