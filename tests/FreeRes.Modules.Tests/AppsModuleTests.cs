@@ -277,6 +277,19 @@ public sealed partial class AppsModuleTests : IDisposable
         Assert.Null(new AppProtection(AppsWorld.Environment).Check(name, publisher, path));
 
     [Fact]
+    public void Application_declarant_un_sous_dossier_de_Windows_n_a_pas_de_dossier_et_est_protegee()
+    {
+        // Cas reel (machine de dev) : « Intel(R) Network Connections Drivers », InstallLocation = C:\WINDOWS\system32,
+        // se voyait attribuer 67 processus Windows. Un sous-dossier de Windows n'est jamais le dossier d'une application.
+        var protection = new AppProtection(AppsWorld.Environment);
+        var system32 = Path.Combine(AppsWorld.Environment.WindowsDirectory, "system32");
+        Assert.True(protection.IsBroadFolder(system32));
+        Assert.True(protection.IsBroadFolder(Path.Combine(AppsWorld.Environment.WindowsDirectory, "SysWOW64", "drivers")));
+        Assert.Equal(AppProtection.WindowsReason, protection.Check("Intel(R) Network Connections Drivers", "Intel", system32));
+        Assert.False(protection.IsBroadFolder(@"C:\Program Files\Docker\Docker"));
+    }
+
+    [Fact]
     public async Task Element_protege_jamais_propose_et_action_refusee_avec_sa_raison()
     {
         _w.App("Av", "Bitdefender Total Security", "Bitdefender", @"C:\Program Files\Bitdefender");

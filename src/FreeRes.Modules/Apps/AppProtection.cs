@@ -81,8 +81,10 @@ internal sealed partial class AppProtection(AppsEnvironment environment)
             return true;
         }
 
+        // Tout dossier SOUS Windows (pas seulement C:\Windows lui-meme) : constate sur machine reelle, un pilote
+        // declare « InstallLocation = C:\WINDOWS\system32 » et se voyait attribuer 67 processus Windows.
         return string.Equals(Path.GetPathRoot(f)?.TrimEnd('\\'), f.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)
             || Environment.BroadFolders.Any(b => AppPathRules.SamePath(b, f))
-            || AppPathRules.SamePath(f, Environment.WindowsDirectory);
+            || IsWindowsPath(f);
     }
 }
