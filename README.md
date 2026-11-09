@@ -15,7 +15,7 @@
 <p align="center">
   <img alt="Windows 10 | 11 (x64)" src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-0078D4">
   <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-512BD4">
-  <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-2EA043">
+  <img alt="Version 0.2.0" src="https://img.shields.io/badge/version-0.2.0-2EA043">
   <img alt="Statut : en développement" src="https://img.shields.io/badge/statut-en%20d%C3%A9veloppement-orange">
 </p>
 
@@ -56,7 +56,7 @@ service sur la machine de développement), pour en faire un produit installable 
 
 ## Disponible aujourd'hui, et feuille de route
 
-**Version 0.1.0 — le socle.** Ce qui fonctionne aujourd'hui :
+**Version 0.2.0 — socle et moteur.** Ce qui fonctionne aujourd'hui :
 
 - une application discrète dans la **zone de notification** (à côté de l'horloge), qui ne se lance
   qu'une fois même si vous la rouvrez ;
@@ -66,13 +66,22 @@ service sur la machine de développement), pour en faire un produit installable 
 - une **désinstallation propre** : l'application est fermée, le démarrage automatique retiré, et vos
   données ne sont supprimées que si vous le confirmez.
 
-> À ce stade, Facil FreePC **ne mesure ni ne libère encore aucune ressource** : la fenêtre affiche
-> l'état du socle. Les fonctions de surveillance et d'action arrivent avec les phases suivantes.
+**Moteur de surveillance (Phase 1)** :
+
+- mesure en continu de la mémoire disponible, de la **mémoire engagée** (le vrai signal d'un PC qui va se
+  figer), de l'espace libre du disque système et des programmes les plus gourmands — sans WMI ;
+- **profil automatique du PC** (fabricant, modèle, Windows, mémoire, disque) et **seuils d'alerte calculés
+  pour cette machine** (personnalisables dans `settings.json`) ;
+- tableau de bord en direct, avec les jauges colorées selon ces seuils ;
+- file de décisions (approuver, rejeter, reporter), historique local et journal, avec purge automatique.
+
+> À ce stade, Facil FreePC **mesure et surveille, mais ne libère encore aucune ressource** : les modules
+> qui proposent et appliquent les actions (disque, navigateurs, IA…) arrivent avec les phases suivantes.
 
 | Phase | Contenu | Statut |
 |---|---|---|
 | **0 — Socle** | Application de notification, fenêtre WebView2, serveur local sécurisé, installateur, désinstallation propre | Terminée |
-| **1 — Moteur** | Mesures de la mémoire et du disque, profil automatique du PC avec seuils adaptés à sa mémoire, file de décisions (approuver, rejeter, reporter), journal et historique | À venir |
+| **1 — Moteur** | Mesures de la mémoire et du disque, profil automatique du PC avec seuils adaptés à sa mémoire, file de décisions (approuver, rejeter, reporter), journal et historique | Terminée |
 | **2 — Modules système** | Nettoyage du disque limité aux zones sûres, maintenance Windows Update (avec accord UAC), Docker et WSL s'ils sont présents, inventaire des applications et de ce qui démarre avec Windows | À venir |
 | **3 — Navigateurs** | Détection de Firefox, Chrome, Edge, Brave, Opera et Vivaldi ; mise en veille automatique des onglets inactifs ; redémarrage propre du navigateur sur votre clic, avec contrôle de la restauration de session | À venir |
 | **4 — IA** | Détection des applications d'IA, modèles chargés, mémoire vidéo et disque ; propositions de décharger un modèle inactif ou d'arrêter un serveur inutilisé (jamais de suppression) | À venir |
@@ -94,7 +103,7 @@ Chaque installateur `FacilFreePC-Setup-<version>.exe` est accompagné d'un fichi
 son empreinte. Avant d'installer, comparez-la avec celle du fichier téléchargé :
 
 ```powershell
-Get-FileHash .\FacilFreePC-Setup-0.1.0.exe -Algorithm SHA256
+Get-FileHash .\FacilFreePC-Setup-0.2.0.exe -Algorithm SHA256
 ```
 
 Les deux empreintes doivent être **strictement identiques**. Sinon, n'exécutez pas le fichier.
@@ -179,8 +188,8 @@ Tests seuls : `dotnet test FreeRes.sln`.
 
 | Élément | Rôle |
 |---|---|
-| `src/FreeRes.Core` | Identité de l'application (lue depuis les attributs d'assembly), chemins de données ; accueillera le moteur (Phase 1) |
-| `src/FreeRes.Host` | Serveur Kestrel sur **127.0.0.1** (port choisi par le système), middleware de sécurité, API (`/api/health`), interface embarquée (`wwwroot`) |
+| `src/FreeRes.Core` | Identité, chemins de données ; **moteur** : mesures natives sans WMI (`Metrics`), profil machine (`Machine`), seuils relatifs, réglages et politique d'escalade (`Policy`), liste fermée d'actions et répartiteur (`Actions`), boîte de décisions (`Decisions`), stockage SQLite versionné (`Storage`), journal JSONL (`Logging`), cycle de surveillance et assemblage (`Engine`) |
+| `src/FreeRes.Host` | Serveur Kestrel sur **127.0.0.1** (port choisi par le système), middleware de sécurité, boucle de surveillance en arrière-plan, API (`/api/health`, `/api/state`), interface embarquée (`wwwroot`) |
 | `src/FreeRes.App` | `FacilFreePC.exe` : instance unique, icône de notification, fenêtre WebView2 avec profil dédié |
 | `tests/FreeRes.*.Tests` | xUnit : Core, sécurité du serveur par requêtes HTTP réelles, coquille Windows (instance unique, dimensionnement de la fenêtre) |
 | `installer/FacilFreePC.iss` | Inno Setup : installation par utilisateur, démarrage de session, fermeture avant mise à jour ou désinstallation |
@@ -200,8 +209,23 @@ Arguments de `FacilFreePC.exe` :
 | `--background` | Démarre dans la zone de notification sans ouvrir la fenêtre (utilisé à l'ouverture de session) |
 | `--quit` | Demande à l'instance en cours de se fermer et **attend sa fin réelle** (15 s au plus) ; code 1 si elle ne s'est pas fermée |
 
-Données : `%LOCALAPPDATA%\FacilFreePC` (sous-dossiers `logs` et `WebView2`). La variable
-d'environnement `FREERES_DATA_DIR` permet d'isoler ce dossier, notamment pour les tests.
+Données : `%LOCALAPPDATA%\FacilFreePC` — `freeres.db` (SQLite : historique, propositions, décisions,
+état), `logs\events-AAAA-MM.jsonl` (journal), `WebView2\` (profil de la fenêtre) et, facultatif,
+`settings.json`. La variable d'environnement `FREERES_DATA_DIR` permet d'isoler ce dossier (tests).
+
+Exemple de `settings.json` (toutes les clés sont facultatives ; un fichier invalide est signalé dans
+l'interface et les valeurs par défaut s'appliquent) :
+
+```json
+{
+  "monitorIntervalMinutes": 5,
+  "thresholds": { "ramAvailWarnGB": 3, "diskFreeWarnGB": 30 },
+  "notification": { "windowCooldownMinutes": 60, "toastCooldownMinutes": 120, "userActiveMaxIdleMinutes": 10 },
+  "snoozeHours": 24,
+  "rejectHours": 168,
+  "retention": { "historyDays": 180, "logDays": 60, "decisionsDays": 30 }
+}
+```
 
 ### Sécurité de l'interface locale
 

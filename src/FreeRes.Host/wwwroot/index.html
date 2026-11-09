@@ -10,22 +10,56 @@
   <main class="shell">
     <header class="top">
       <img class="brand" src="logo.png" alt="Facil" width="118" height="50">
-      <div>
+      <div class="title">
         <h1>FreePC</h1>
         <span id="version" class="muted">…</span>
       </div>
+      <div id="health" class="pill" aria-live="polite">Connexion…</div>
     </header>
-    <section class="card" aria-live="polite">
-      <h2>Socle opérationnel</h2>
-      <p>Le serveur local répond. Le tableau de bord (santé, décisions, applications, navigateurs, IA)
-        arrive dans les phases suivantes.</p>
-      <dl class="facts">
-        <dt>Machine</dt><dd id="machine">…</dd>
-        <dt>Démarré</dt><dd id="started">…</dd>
-        <dt>État</dt><dd id="status">Connexion…</dd>
-      </dl>
+
+    <section class="gauges" aria-label="Ressources">
+      <article class="card gauge" id="g-ram">
+        <h2>Mémoire disponible</h2>
+        <p class="big"><span data-v>…</span></p>
+        <div class="bar"><span data-b></span></div>
+        <p class="muted small" data-s>…</p>
+      </article>
+      <article class="card gauge" id="g-commit">
+        <h2>Mémoire engagée</h2>
+        <p class="big"><span data-v>…</span></p>
+        <div class="bar"><span data-b></span></div>
+        <p class="muted small" data-s>…</p>
+      </article>
+      <article class="card gauge" id="g-disk">
+        <h2>Disque système libre</h2>
+        <p class="big"><span data-v>…</span></p>
+        <div class="bar"><span data-b></span></div>
+        <p class="muted small" data-s>…</p>
+      </article>
     </section>
-    <footer class="muted foot">Facil FreePC — une solution de la marque Facil · © 2026 EMAC SAH AI Solutions Architect</footer>
+
+    <section class="cols">
+      <article class="card">
+        <h2>Plus gros consommateurs</h2>
+        <ol id="top" class="top-list"></ol>
+      </article>
+      <article class="card">
+        <h2>Décisions en attente <span id="pending-count" class="count">0</span></h2>
+        <ul id="pending" class="pending"></ul>
+        <p id="pending-empty" class="muted">Aucune décision en attente.</p>
+      </article>
+    </section>
+
+    <section id="warnings" class="card warn" hidden>
+      <h2>Réglages</h2>
+      <ul id="warning-list"></ul>
+    </section>
+
+    <footer class="muted foot">
+      <span id="machine">…</span><br>
+      <span id="cycle">…</span><br>
+      Facil FreePC — une solution de la marque Facil · © 2026 EMAC SAH AI Solutions Architect
+    </footer>
   </main>
   <script src="app.js"></script>
 </body>

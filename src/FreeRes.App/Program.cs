@@ -1,5 +1,8 @@
 using FreeRes.Core;
+using FreeRes.Core.Engine;
+using FreeRes.Core.Storage;
 using FreeRes.Host;
+using Microsoft.Data.Sqlite;
 
 namespace FreeRes.App;
 
@@ -30,19 +33,41 @@ internal static class Program
         var paths = AppPaths.Default();
         paths.EnsureCreated();
 
-        var options = new LocalWebHostOptions { Token = SessionToken.Create() };
-        var host = LocalWebHost.Create(options);
-        host.StartAsync().GetAwaiter().GetResult();
+        FreeResRuntime runtime;
         try
         {
-            using var context = new TrayContext(host, paths, openWindow: !args.Contains("--background", StringComparer.OrdinalIgnoreCase));
-            Application.Run(context);
+            runtime = FreeResRuntime.Create(paths);
         }
-        finally
+        catch (DatabaseVersionException ex)
         {
-            host.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            ShowFatal(ex.Message);
+            return 2;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException or InvalidOperationException)
+        {
+            ShowFatal($"Demarrage impossible : {ex.Message}\n\nDonnees : {paths.DataDirectory}");
+            return 3;
+        }
+
+        using (runtime)
+        {
+            var options = new LocalWebHostOptions { Token = SessionToken.Create() };
+            var host = LocalWebHost.Create(options, runtime);
+            host.StartAsync().GetAwaiter().GetResult();
+            try
+            {
+                using var context = new TrayContext(host, paths, openWindow: !args.Contains("--background", StringComparer.OrdinalIgnoreCase));
+                Application.Run(context);
+            }
+            finally
+            {
+                host.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
         }
 
         return 0;
     }
+
+    private static void ShowFatal(string message) =>
+        MessageBox.Show(message, AppInfo.Name, MessageBoxButtons.OK, MessageBoxIcon.Error);
 }

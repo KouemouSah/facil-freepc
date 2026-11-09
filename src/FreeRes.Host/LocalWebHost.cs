@@ -1,5 +1,7 @@
 using System.Net;
+using System.Text.Json.Serialization;
 using FreeRes.Core;
+using FreeRes.Core.Engine;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -26,14 +28,24 @@ public sealed class LocalWebHost : IAsyncDisposable
     /// <summary>Adresse reelle apres demarrage (port attribue par le systeme si Port = 0).</summary>
     public Uri BaseAddress { get; private set; } = new($"http://{LocalWebHostOptions.LoopbackHost}/");
 
-    /// <summary>Construit l'application. <paramref name="configure"/> sert aux tests (serveur de test en memoire).</summary>
-    public static LocalWebHost Create(LocalWebHostOptions options, Action<WebApplicationBuilder>? configure = null)
+    /// <summary>
+    /// Construit l'application. <paramref name="runtime"/> : moteur de surveillance (null = interface seule, tests de
+    /// securite) ; il est alors pilote par une boucle en arriere-plan. <paramref name="configure"/> sert aux tests.
+    /// </summary>
+    public static LocalWebHost Create(LocalWebHostOptions options, FreeResRuntime? runtime = null, Action<WebApplicationBuilder>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.ConfigureKestrel(k => k.Listen(IPAddress.Loopback, options.Port));
         builder.Services.AddSingleton(options);
+        builder.Services.ConfigureHttpJsonOptions(j => j.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        if (runtime is not null)
+        {
+            builder.Services.AddSingleton(runtime);
+            builder.Services.AddHostedService<EngineLoopService>();
+        }
+
         configure?.Invoke(builder);
 
         var app = builder.Build();
@@ -48,6 +60,7 @@ public sealed class LocalWebHost : IAsyncDisposable
             AppInfo.Version,
             Environment.MachineName,
             o.StartedAt));
+        StateApi.Map(app, runtime);
 
         return new LocalWebHost(app, options);
     }

@@ -19,7 +19,7 @@ public sealed class LocalWebHostSecurityTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _host = LocalWebHost.Create(new LocalWebHostOptions { Token = Token }, b => b.WebHost.UseTestServer());
+        _host = LocalWebHost.Create(new LocalWebHostOptions { Token = Token }, configure: b => b.WebHost.UseTestServer());
         await _host.StartAsync();
         _server = (TestServer)_host.Services.GetRequiredService<IServer>();
     }
