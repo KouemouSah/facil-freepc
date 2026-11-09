@@ -1,0 +1,38 @@
+# Publication : sur tag vX.Y.Z -> meme sequence que build.ps1 (tests, exe unique, installeur Inno Setup,
+# SHA-256) puis Release GitHub avec les fichiers. PREPARE, NON ACTIVE (depot distant a creer).
+name: release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Version du tag = version du projet
+        shell: pwsh
+        run: |
+          [xml]$p = Get-Content Directory.Build.props -Raw
+          $v = ($p.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1).Version
+          if ("v$v" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} different de la version du projet v$v" }
+      - name: Construction (build.ps1)
+        shell: pwsh
+        run: ./build.ps1
+      - name: Release GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/FacilFreePC-Setup-*.exe
+            artifacts/FacilFreePC-Setup-*.exe.sha256
+          fail_on_unmatched_files: true

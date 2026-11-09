@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Serveur web local (Kestrel 127.0.0.1) + API + interface embarquee. Sans dependance WinForms : testable seul. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="wwwroot\**" />
+    <Content Remove="wwwroot\**" />
+    <!-- Source unique du logo de marque : assets\logo.png (servi en /logo.png). -->
+    <EmbeddedResource Include="..\..\assets\logo.png" Link="wwwroot\logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FreeRes.Core\FreeRes.Core.csproj" />
+    <InternalsVisibleTo Include="FreeRes.Host.Tests" />
+  </ItemGroup>
+
+</Project>

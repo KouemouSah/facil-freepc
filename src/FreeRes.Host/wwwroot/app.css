@@ -1,0 +1,57 @@
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --muted: #5d6676;
+  --border: #dfe3ea;
+  --ok: #1f7a4d;
+  --err: #b42318;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b;
+    --surface: #1b2029;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --border: #2c3340;
+    --ok: #4cc38a;
+    --err: #ff7a6b;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+}
+
+.shell { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+
+.top { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.top h1 { margin: 0; font-size: 22px; line-height: 1.1; }
+/* Logo noir sur fond transparent : pastille claire en mode sombre pour rester lisible. */
+.brand { display: block; height: 50px; width: auto; }
+@media (prefers-color-scheme: dark) { .brand { background: #fff; border-radius: 8px; padding: 4px 8px; } }
+.foot { margin-top: 16px; font-size: 12px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+.card h2 { margin: 0 0 8px; font-size: 17px; }
+
+.muted { color: var(--muted); }
+
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 12px 0 0; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+
+.ok { color: var(--ok); }
+.err { color: var(--err); }

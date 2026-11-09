@@ -1,0 +1,10 @@
+<Project>
+  <!-- Le paquet WebView2 reference sans condition sa DLL WPF (build/Common.targets, .NET 5+), y compris par
+       transitivite dans les projets de tests : conflit WindowsBase 4.0/5.0 dans une appli WinForms.
+       On la retire partout : inutile ici, et l'exe publie s'en trouve allege. -->
+  <Target Name="FacilRemoveWebView2Wpf" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="@(Reference)" Condition="'%(Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+    </ItemGroup>
+  </Target>
+</Project>

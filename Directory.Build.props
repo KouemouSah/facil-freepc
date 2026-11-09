@@ -1,0 +1,26 @@
+<Project>
+  <!-- Proprietes communes a tous les projets FreeRes. -->
+  <PropertyGroup>
+    <!-- Identite commerciale (marque Facil). Le nom de code interne des projets reste « FreeRes ». -->
+    <Version>0.1.0</Version>
+    <Product>Facil FreePC</Product>
+    <Company>Emac SAH</Company>
+    <Copyright>Copyright (c) 2026 EMAC SAH AI Solutions Architect</Copyright>
+    <Description>Facil FreePC - liberation et controle des ressources Windows (solutions de la marque Facil)</Description>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Les avertissements MSBuild (conflits de references...) bloquent aussi la construction. -->
+    <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Symboles integres aux assemblies : traces d'erreur lisibles sans fichiers .pdb a distribuer. -->
+    <DebugType>embedded</DebugType>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+    <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
+  </PropertyGroup>
+</Project>

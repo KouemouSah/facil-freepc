@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Coquille Windows : icone de notification + fenetre WebView2 + demarrage du serveur local. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>FacilFreePC</AssemblyName>
+    <ApplicationIcon>..\..\assets\app.ico</ApplicationIcon>
+    <RootNamespace>FreeRes.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <!-- Publication : exe unique autonome (aucun runtime .NET a installer sur la machine cible).
+         RID et self-contained sont passes par build.ps1 a la publication : en compilation normale le
+         projet reste referencable par les tests. -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FreeRes.Core\FreeRes.Core.csproj" />
+    <ProjectReference Include="..\FreeRes.Host\FreeRes.Host.csproj" />
+    <InternalsVisibleTo Include="FreeRes.App.Tests" />
+  </ItemGroup>
+
+</Project>

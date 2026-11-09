@@ -1,0 +1,35 @@
+# Integration continue : compilation (avertissements = erreurs) + tests a chaque push / pull request.
+# PREPARE, NON ACTIVE : le depot distant n'existe pas encore (build local par build.ps1 en attendant).
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Compilation
+        run: dotnet build FreeRes.sln -c Release -nologo
+      - name: Tests
+        run: dotnet test FreeRes.sln -c Release --no-build -nologo --logger "trx;LogFilePrefix=tests"
+      - name: Resultats de tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: tests/**/TestResults/*.trx
