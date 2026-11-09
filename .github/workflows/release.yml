@@ -48,7 +48,8 @@ jobs:
       - name: Manifeste signe obligatoire pour publier
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
-        run: if (-not (Test-Path artifacts/latest.json.sig)) { throw 'latest.json non signe : secret UPDATE_SIGNING_KEY absent' }
+        run: |
+          if (-not (Test-Path artifacts/latest.json.sig)) { throw 'latest.json non signe : secret UPDATE_SIGNING_KEY absent' }
       - name: Essai d'installation et de desinstallation silencieuses
         shell: pwsh
         run: |
