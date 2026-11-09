@@ -73,6 +73,21 @@ internal static class Program
             case "startup-toggle" when args.Length == 2:
                 return await StartupToggle(apps, Context, Run, args[1]);
 
+            case "browsers":
+            {
+                var browsers = setup.Modules.OfType<FreeRes.Modules.Browsers.BrowsersModule>().Single();
+                var eval = await browsers.EvaluateAsync(Context(), CancellationToken.None);
+                foreach (var b in browsers.LastStatus)
+                {
+                    Console.WriteLine($"{b.Name,-28} lance={b.Running,-5} proc={b.ProcessCount,-3} principaux={b.MainProcessCount} {b.WorkingSetGB,5} GB uptime={b.UptimeHours?.ToString(CultureInfo.InvariantCulture) ?? "-"} h");
+                    Console.WriteLine($"    economiseur : {b.MemorySaverNote} ; profils actifs : {b.ActiveProfiles} ({b.ActiveProfile ?? "-"}) ; extension : {b.ExtensionInstalled?.ToString() ?? "-"}");
+                    Console.WriteLine($"    redemarrage : {b.RestartNote}");
+                }
+
+                Console.WriteLine($"Propositions : {string.Join(" | ", eval.Proposals.Select(p => $"{p.Id} ({p.Severity})"))}");
+                return 0;
+            }
+
             case "process-stop":
                 return await ProcessStop(Context, Run, services);
 

@@ -16,7 +16,12 @@ public sealed record ModuleServices(
     TimeProvider Time,
     ISystemProbe Probe,
     IProcessRunner Processes,
-    IStateStore? State);
+    IStateStore? State,
+    IProcessLauncher? Launcher = null)
+{
+    /// <summary>Lanceur detache (relance d'un navigateur...) ; implementation reelle par defaut.</summary>
+    public IProcessLauncher EffectiveLauncher => Launcher ?? new ProcessLauncher();
+}
 
 /// <summary>Modules a surveiller + enregistrement de leurs actions dans la liste fermee.</summary>
 public sealed record ModuleSetup(IReadOnlyList<IResourceModule> Modules, Action<ActionCatalog> RegisterActions)
