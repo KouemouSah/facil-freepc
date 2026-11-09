@@ -5,7 +5,7 @@ namespace FreeRes.App;
 
 /// <summary>
 /// Vie de l'application : icone dans la zone de notification. La fenetre est creee a la demande et
-/// detruite a la fermeture (FreeRes continue en arriere-plan) ; « Quitter » arrete tout.
+/// detruite a la fermeture (l'application continue en arriere-plan) ; « Quitter » arrete tout.
 /// </summary>
 internal sealed class TrayContext : ApplicationContext
 {
@@ -26,7 +26,7 @@ internal sealed class TrayContext : ApplicationContext
         _ui = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add("Ouvrir FreeRes", null, (_, _) => ShowWindow());
+        menu.Items.Add($"Ouvrir {AppInfo.Name}", null, (_, _) => ShowWindow());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Quitter", null, (_, _) => ExitThread());
 

@@ -110,7 +110,7 @@ internal sealed class MainForm : Form
     private static void OfferRuntimeDownload()
     {
         var answer = MessageBox.Show(
-            "FreeRes a besoin du moteur Microsoft Edge WebView2, absent de cet ordinateur.\n\nOuvrir la page de telechargement officielle de Microsoft ?",
+            $"{AppInfo.Name} a besoin du moteur Microsoft Edge WebView2, absent de cet ordinateur.\n\nOuvrir la page de téléchargement officielle de Microsoft ?",
             AppInfo.Name,
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning);
