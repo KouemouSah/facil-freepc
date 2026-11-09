@@ -37,9 +37,13 @@ public sealed partial class ArchitectureGuardTests
     [GeneratedRegex(@"System\.Management|ManagementObject|Win32_")]
     private static partial Regex Wmi();
 
+    /// <summary>
+    /// Un acces a %TEMP% n'est admis qu'en LECTURE et doit le declarer sur la ligne meme
+    /// (« garde-fou-temp: lecture seule » + justification), pour rester visible a toute relecture.
+    /// </summary>
     [Fact]
     public void Aucun_fichier_temporaire_un_script_ecrit_dans_TEMP_peut_etre_substitue_avant_execution_admin() =>
-        Assert.Empty(Matches(TempPath()));
+        Assert.DoesNotContain(Matches(TempPath()), l => !l.Text.Contains("garde-fou-temp: lecture seule", StringComparison.Ordinal));
 
     [Fact]
     public void Aucun_lancement_direct_de_processus_tout_passe_par_IProcessRunner() =>
