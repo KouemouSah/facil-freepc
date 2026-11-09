@@ -1,6 +1,7 @@
 using FreeRes.Core.Actions;
 using FreeRes.Core.Engine;
 using FreeRes.Modules.Disk;
+using FreeRes.Modules.Docker;
 using FreeRes.Modules.Windows;
 
 namespace FreeRes.Modules;
@@ -16,13 +17,15 @@ public static class ModulePack
         ArgumentNullException.ThrowIfNull(services);
         var disk = new DiskModule(services);
         var windows = new WindowsMaintenanceModule(services, disk.Cleaner);
+        var docker = new DockerModule(services);
 
         void Register(ActionCatalog catalog)
         {
             disk.RegisterActions(catalog);
             windows.RegisterActions(catalog);
+            docker.RegisterActions(catalog);
         }
 
-        return new ModuleSetup([disk, windows], Register);
+        return new ModuleSetup([disk, windows, docker], Register);
     }
 }
