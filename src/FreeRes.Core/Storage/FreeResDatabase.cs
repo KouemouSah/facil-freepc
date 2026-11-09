@@ -19,7 +19,7 @@ public sealed class DatabaseVersionException(string message) : Exception(message
 /// creee par une version PLUS RECENTE est refusee plutot que corrompue.
 /// Acces serialise (verrou) : le moteur et le serveur web l'utilisent depuis des threads differents.
 /// </summary>
-public sealed class FreeResDatabase : IDisposable
+public sealed class FreeResDatabase : IStateStore, IDisposable
 {
     public const int SchemaVersion = 1;
 
@@ -215,9 +215,9 @@ public sealed class FreeResDatabase : IDisposable
 
     // ------------------------------------------------------------------ outils
 
-    internal static string Iso(DateTimeOffset value) => value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
+    public static string Iso(DateTimeOffset value) => value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
 
-    internal static DateTimeOffset Parse(string value) => DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+    public static DateTimeOffset Parse(string value) => DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
 
     private object? Scalar(string sql)
     {

@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Modules de surveillance et leurs actions (disque, maintenance Windows, Docker/WSL, applications...). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FreeRes.Core\FreeRes.Core.csproj" />
+    <InternalsVisibleTo Include="FreeRes.Modules.Tests" />
+  </ItemGroup>
+
+</Project>

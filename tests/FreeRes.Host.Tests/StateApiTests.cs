@@ -46,8 +46,9 @@ public sealed class StateApiTests : IAsyncLifetime
         _runtime = FreeResRuntime.Create(
             new AppPaths(_dir),
             _probe,
-            c => c.Register(new ActionDefinition("TestNoop", false, _ => null, (_, _, _) => Task.FromResult(new ActionOutcome(true, "ok")))),
-            [new OneProposalModule()]);
+            _ => new ModuleSetup(
+                [new OneProposalModule()],
+                c => c.Register(new ActionDefinition("TestNoop", false, _ => null, (_, _, _) => Task.FromResult(new ActionOutcome(true, "ok"))))));
         _host = LocalWebHost.Create(new LocalWebHostOptions { Token = Token }, _runtime, b => b.WebHost.UseTestServer());
         await _host.StartAsync();
         _server = (TestServer)_host.Services.GetRequiredService<IServer>();

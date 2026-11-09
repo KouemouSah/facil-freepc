@@ -147,7 +147,9 @@ public sealed class MonitorEngine(
             {
                 try
                 {
-                    autoResults.Add(await dispatcher.ExecuteAsync(auto, dryRun: false, cancellationToken).ConfigureAwait(false));
+                    var autoResult = await dispatcher.ExecuteAsync(auto, dryRun: false, cancellationToken).ConfigureAwait(false);
+                    autoResults.Add(autoResult);
+                    NotifyObservers(auto, autoResult);
                 }
                 catch (ActionRejectedException ex)
                 {
@@ -181,14 +183,43 @@ public sealed class MonitorEngine(
         return report;
     }
 
-    /// <summary>Approuve une proposition : execute son action, puis enregistre la decision si elle a ete tentee.</summary>
+    /// <summary>
+    /// Approuve une proposition : execute son action (avec demande UAC si elle exige l'administrateur), puis
+    /// enregistre la decision si elle a ete tentee. Une elevation refusee ou une action rejetee laisse la proposition en place.
+    /// </summary>
     public async Task<ActionResult> ApproveAsync(string id, CancellationToken cancellationToken)
     {
         var pending = queue.Get(id) ?? throw new KeyNotFoundException($"Proposition inconnue ou deja traitee : {id}");
-        var result = await dispatcher.ExecuteAsync(pending.Proposal.Action, dryRun: false, cancellationToken).ConfigureAwait(false);
+        var result = await dispatcher.ExecuteAsync(pending.Proposal.Action, dryRun: false, cancellationToken, allowElevation: true).ConfigureAwait(false);
+        if (result.Message.StartsWith(ElevationCancelledPrefix, StringComparison.Ordinal))
+        {
+            return result;   // l'utilisateur a refuse l'UAC : rien n'a ete tente, la proposition reste
+        }
+
         queue.Decide(id, DecisionKind.Approved);
+        NotifyObservers(pending.Proposal.Action, result);
         db.AddMetrics(probe.Capture(), "approve", Math.Max(0d, result.DiskDeltaGB));
         return result;
+    }
+
+    /// <summary>Debut du message rendu quand l'utilisateur refuse la demande UAC.</summary>
+    public const string ElevationCancelledPrefix = "Elevation refusee";
+
+    private void NotifyObservers(ActionRequest request, ActionResult result)
+    {
+        foreach (var observer in modules.OfType<IActionObserver>())
+        {
+            try
+            {
+                observer.OnActionCompleted(request, result);
+            }
+#pragma warning disable CA1031 // Un observateur defaillant ne doit pas faire echouer l'action deja executee.
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                log.Write(LogLevel.Error, "monitor", $"Observateur en echec apres {request.Type} : {ex.Message}");
+            }
+        }
     }
 
     public void Reject(string id) => queue.Decide(id, DecisionKind.Rejected, TimeSpan.FromHours(settings.RejectHours));

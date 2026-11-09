@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FreeRes.Core\FreeRes.Core.csproj" />
     <ProjectReference Include="..\FreeRes.Host\FreeRes.Host.csproj" />
+    <ProjectReference Include="..\FreeRes.Modules\FreeRes.Modules.csproj" />
     <InternalsVisibleTo Include="FreeRes.App.Tests" />
   </ItemGroup>
 

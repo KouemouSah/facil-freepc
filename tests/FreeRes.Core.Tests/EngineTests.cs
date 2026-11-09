@@ -34,7 +34,7 @@ public sealed class MonitorEngineTests : IDisposable
     public MonitorEngineTests()
     {
         _probe = new FakeProbe(_time);
-        _rt = FreeResRuntime.Create(new AppPaths(_dir.Path), _probe, c => TestActions.Register(c, _executions), [_disk, _browser], _elevation, _time);
+        _rt = FreeResRuntime.Create(new AppPaths(_dir.Path), _probe, _ => new ModuleSetup([_disk, _browser], c => TestActions.Register(c, _executions)), _elevation, _time);
     }
 
     private static Proposal P(string id, ActionRequest? action = null) => new(id, "Titre", "Detail", 1, Severity.Warn, action ?? TestActions.Clean());

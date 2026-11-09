@@ -2,6 +2,7 @@ using FreeRes.Core;
 using FreeRes.Core.Engine;
 using FreeRes.Core.Storage;
 using FreeRes.Host;
+using FreeRes.Modules;
 using Microsoft.Data.Sqlite;
 
 namespace FreeRes.App;
@@ -16,6 +17,12 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        if (ElevatedMode.TryParse(args, out var encodedAction, out var resultPath))
+        {
+            // Relance UAC pour UNE action administrateur : jamais d'interface ni d'instance unique.
+            return ElevatedMode.Run(encodedAction, resultPath);
+        }
+
         if (args.Contains("--quit", StringComparer.OrdinalIgnoreCase))
         {
             // Utilise par l'installeur avant remplacement/suppression des fichiers : on ATTEND la fin reelle.
@@ -36,7 +43,7 @@ internal static class Program
         FreeResRuntime runtime;
         try
         {
-            runtime = FreeResRuntime.Create(paths);
+            runtime = FreeResRuntime.Create(paths, modules: ModulePack.Create, elevatedRunner: new UacElevatedRunner(paths));
         }
         catch (DatabaseVersionException ex)
         {

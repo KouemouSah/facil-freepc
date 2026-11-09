@@ -46,7 +46,7 @@ public sealed class WindowsSystemProbe(TimeProvider time) : ISystemProbe
     }
 
     /// <summary>Redemarrage exige par la maintenance Windows (bloque Windows Update, DISM, et retient de la RAM).</summary>
-    internal static bool IsRebootPending()
+    public static bool IsRebootPending()
     {
         using var cbs = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending");
         using var wu = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired");

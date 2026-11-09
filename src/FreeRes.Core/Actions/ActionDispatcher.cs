@@ -25,15 +25,29 @@ public sealed class WindowsElevation : IElevation
 /// Execute une action de la liste fermee : validation, controle des droits, mesure du gain disque,
 /// journalisation. Une erreur du module donne un resultat en echec, jamais un plantage du moteur.
 /// </summary>
-public sealed class ActionDispatcher(ActionCatalog catalog, IElevation elevation, Func<double> systemDriveFreeGB, EventLog log)
+public sealed class ActionDispatcher(ActionCatalog catalog, IElevation elevation, Func<double> systemDriveFreeGB, EventLog log, IElevatedRunner? elevatedRunner = null)
 {
-    public async Task<ActionResult> ExecuteAsync(ActionRequest request, bool dryRun, CancellationToken cancellationToken)
+    /// <summary>
+    /// <paramref name="allowElevation"/> : true UNIQUEMENT pour une action approuvee par l'utilisateur ; une action
+    /// administrateur declenche alors une demande UAC pour elle seule. Les actions automatiques ne demandent jamais d'elevation.
+    /// </summary>
+    public async Task<ActionResult> ExecuteAsync(ActionRequest request, bool dryRun, CancellationToken cancellationToken, bool allowElevation = false)
     {
         var def = catalog.Resolve(request);   // leve ActionRejectedException : refus avant toute execution
         if (def.RequiresAdmin && !dryRun && !elevation.IsAdministrator)
         {
-            // L'execution elevee (relance « runas » pour UNE action) est apportee par le premier module qui en a besoin (phase 2).
-            throw new ActionRejectedException($"{request.Type} necessite des droits administrateur");
+            if (!allowElevation || elevatedRunner is null)
+            {
+                throw new ActionRejectedException($"{request.Type} necessite des droits administrateur");
+            }
+
+            var elevated = await elevatedRunner.RunAsync(request, cancellationToken).ConfigureAwait(false);
+            log.Write(
+                elevated.Ok ? LogLevel.Action : LogLevel.Error,
+                "action",
+                $"{request.Type} (eleve) : {elevated.Message}",
+                new Dictionary<string, object?> { ["diskDeltaGB"] = elevated.DiskDeltaGB, ["elevated"] = true });
+            return elevated;
         }
 
         var before = systemDriveFreeGB();
