@@ -61,6 +61,7 @@ public sealed class LocalWebHost : IAsyncDisposable
             Environment.MachineName,
             o.StartedAt));
         StateApi.Map(app, runtime);
+        IconApi.Map(app, runtime, options.Icons);
 
         return new LocalWebHost(app, options);
     }

@@ -14,7 +14,7 @@ namespace FreeRes.Modules.Browsers;
 ///   * REDEMARRAGE = toujours un bouton, seulement si la restauration de TOUTES les fenetres est garantie par une
 ///     methode verifiee (voir <see cref="BrowserDefinition.RestartValidated"/>) ; jamais de fermeture forcee.
 /// </summary>
-public sealed class BrowsersModule : IResourceModule, IStatusSource
+public sealed class BrowsersModule : IResourceModule, IStatusSource, IIconSource
 {
     public const string OpenBrowserSettings = "OpenBrowserSettings";
     public const string RestartBrowser = "RestartBrowser";
@@ -55,6 +55,8 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
     public IReadOnlyList<BrowserStatus> LastStatus => Volatile.Read(ref _last);
 
     public object? CurrentStatus => LastStatus;
+
+    public string? IconPath(string id) => LastStatus.FirstOrDefault(b => string.Equals(b.Id, id, StringComparison.Ordinal))?.ExePath;
 
     public Task<ModuleEvaluation> EvaluateAsync(EngineContext context, CancellationToken cancellationToken)
     {

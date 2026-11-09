@@ -105,6 +105,18 @@ Windows, les navigateurs, l'IA, Docker, l'historique (courbes sur 24 h, actions 
 « Comment ça marche ». Une décision nouvelle déclenche une notification Windows (cliquable) ; en état critique,
 avec l'utilisateur présent, la fenêtre s'ouvre. Un délai anti-répétition s'applique dans les deux cas.
 
+Les icônes de l'interface sont monochromes et vectorielles ([Lucide](https://lucide.dev), licence ISC et MIT
+recopiée dans `wwwroot/icons.svg`, généré par `tools/New-IconSprite.py`). Chaque application, navigateur, outil
+d'IA et Docker Desktop affiche **sa vraie icône**, lue dans son exécutable sur le PC (aucun logo de marque n'est
+embarqué) ; à défaut, une icône monochrome. Seuls les exécutables situés sur un disque local fixe sont lus : un
+chemin réseau ferait contacter un serveur distant avec les identifiants Windows de l'utilisateur. « Comment ça
+marche » est une animation en 4 chapitres (surveille, propose, vous décidez, résultat réel) jouée une fois, avec
+pause et choix du chapitre ; si Windows demande de réduire les animations, chaque chapitre s'affiche figé.
+
+La barre s'adapte à la largeur de la fenêtre (de 1 280 à 900 points) : sous 1 240 points la version passe dans le
+pied de page, sous 1 100 points les onglets non sélectionnés n'affichent plus que leur icône (nom accessible et
+infobulle conservés).
+
 | Phase | Contenu | Statut |
 |---|---|---|
 | **0 — Socle** | Application de notification, fenêtre WebView2, serveur local sécurisé, installateur, désinstallation propre | Terminée |
@@ -112,7 +124,7 @@ avec l'utilisateur présent, la fenêtre s'ouvre. Un délai anti-répétition s'
 | **2 — Modules système** | Nettoyage du disque limité aux zones sûres, maintenance Windows Update (avec accord UAC), Docker et WSL s'ils sont présents, inventaire des applications et de ce qui démarre avec Windows | Terminée |
 | **3 — Navigateurs** | Détection de Firefox, Chrome, Edge, Brave, Opera et Vivaldi ; mise en veille automatique des onglets inactifs ; redémarrage propre du navigateur sur votre clic, avec contrôle de la restauration de session | En cours : module livré, extension Firefox prête (signature Mozilla en attente) |
 | **4 — IA** | Détection des applications d'IA, modèles chargés, mémoire vidéo et disque ; proposition de décharger un modèle Ollama sous tension mémoire, d'ouvrir le dossier des modèles quand le disque est plein (jamais de suppression, jamais d'arrêt du serveur) | Module livré ; essai réel avec Ollama en attente |
-| **5 — Interface** | Tableau de bord sans défilement (santé, décisions, actions faites, applications, navigateurs, IA, historique), écran « Comment ça marche », notifications Windows | Terminée (v0.5.0) |
+| **5 — Interface** | Tableau de bord sans défilement (santé, décisions, actions faites, applications, navigateurs, IA, historique), écran « Comment ça marche », notifications Windows ; puis textes accentués, icônes, animation, barre adaptative | Terminée (v0.5.0, v0.6.0) |
 | **6 — Distribution** | Installateur final, mises à jour, tests sur Windows 10 et 11 vierges, première version publiée avec son empreinte SHA-256 | À venir |
 
 ## Installation
@@ -223,10 +235,10 @@ Tests seuls : `dotnet test FreeRes.sln`.
 |---|---|
 | `src/FreeRes.Core` | Identité, chemins de données ; **moteur** : mesures natives sans WMI (`Metrics`), profil machine (`Machine`), seuils relatifs, réglages et politique d'escalade (`Policy`), liste fermée d'actions, répartiteur et protocole d'élévation UAC (`Actions`), boîte de décisions (`Decisions`), stockage SQLite versionné (`Storage`), journal JSONL (`Logging`), lanceur de programmes à arguments séparés et entrée standard (`Platform`), cycle de surveillance et assemblage (`Engine`) |
 | `src/FreeRes.Modules` | Modules et leurs actions : `Disk` (nettoyeur sûr `SafeCleaner` + suppression par handle `SecureDelete`), `Windows` (maintenance), `Docker` (WSL/VHDX), `Apps` (inventaire, démarrage, services) ; `ModulePack` les assemble |
-| `src/FreeRes.Host` | Serveur Kestrel sur **127.0.0.1** (port choisi par le système), middleware de sécurité, boucle de surveillance en arrière-plan, API (`/api/health`, `/api/state`, `/api/history`, `/api/modules/{nom}`, et en POST seulement `/api/proposals/{id}/approve|snooze|reject`, `/api/cycle`), interface embarquée (`wwwroot`). L'interface ne peut que décider des propositions du moteur : aucune route n'accepte un type d'action |
+| `src/FreeRes.Host` | Serveur Kestrel sur **127.0.0.1** (port choisi par le système), middleware de sécurité, boucle de surveillance en arrière-plan, API (`/api/health`, `/api/state`, `/api/history`, `/api/modules/{nom}`, `/api/icons/{module}/{id}` (PNG ou 204), et en POST seulement `/api/proposals/{id}/approve|snooze|reject`, `/api/cycle`), interface embarquée (`wwwroot`). L'interface ne peut que décider des propositions du moteur : aucune route n'accepte un type d'action |
 | `src/FreeRes.App` | `FacilFreePC.exe` : instance unique, icône de notification, fenêtre WebView2 avec profil dédié |
 | `tests/FreeRes.*.Tests` | xUnit : Core, sécurité du serveur par requêtes HTTP réelles, coquille Windows (instance unique, dimensionnement de la fenêtre) |
-| `tests/FreeRes.Ui.Tests` | Bout en bout avec Playwright sur le **Microsoft Edge installé** (aucun navigateur téléchargé) : décisions, vues, absence de défilement à 1177x618 en thème clair et sombre, données affichées en texte, jeton et origine ; captures dans `artifacts\ui` |
+| `tests/FreeRes.Ui.Tests` | Bout en bout avec Playwright sur le **Microsoft Edge installé** (aucun navigateur téléchargé) : décisions, vues, absence de défilement à la taille réelle de la zone cliente (1163x581 à 150 %) et barre entière de 1266 à 886 points de large, en thème clair et sombre, visite animée (lecture, pause, chapitres, réduction des animations), icônes, données affichées en texte, jeton et origine ; captures dans `artifacts\ui` |
 | `installer/FacilFreePC.iss` | Inno Setup : installation par utilisateur, démarrage de session, fermeture avant mise à jour ou désinstallation |
 | `tools/New-AppIcon.ps1` | Génère `assets/app.ico` (multi-tailles) à partir de l'icône de marque |
 | `tools/New-DarkLogo.ps1` | Génère `assets/logo-dark.png`, variante du logo pour fond sombre |

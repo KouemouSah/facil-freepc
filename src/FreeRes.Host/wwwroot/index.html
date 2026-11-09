@@ -19,17 +19,17 @@
         <span id="version" class="muted"></span>
       </div>
       <nav class="tabs" role="tablist" aria-label="Sections">
-        <button role="tab" id="tab-dashboard" data-view="dashboard" aria-selected="true">Tableau de bord</button>
-        <button role="tab" id="tab-apps" data-view="apps" aria-selected="false">Applications</button>
-        <button role="tab" id="tab-browsers" data-view="browsers" aria-selected="false">Navigateurs</button>
-        <button role="tab" id="tab-ai" data-view="ai" aria-selected="false">IA</button>
-        <button role="tab" id="tab-docker" data-view="docker" aria-selected="false">Docker</button>
-        <button role="tab" id="tab-history" data-view="history" aria-selected="false">Historique</button>
-        <button role="tab" id="tab-help" data-view="help" aria-selected="false">Comment ça marche</button>
+        <button role="tab" id="tab-dashboard" data-view="dashboard" aria-selected="true" title="Tableau de bord"><svg class="i" aria-hidden="true"><use href="icons.svg#layout-dashboard"></use></svg><span>Tableau de bord</span></button>
+        <button role="tab" id="tab-apps" data-view="apps" aria-selected="false" title="Applications"><svg class="i" aria-hidden="true"><use href="icons.svg#app-window"></use></svg><span>Applications</span></button>
+        <button role="tab" id="tab-browsers" data-view="browsers" aria-selected="false" title="Navigateurs"><svg class="i" aria-hidden="true"><use href="icons.svg#globe"></use></svg><span>Navigateurs</span></button>
+        <button role="tab" id="tab-ai" data-view="ai" aria-selected="false" title="IA"><svg class="i" aria-hidden="true"><use href="icons.svg#brain-circuit"></use></svg><span>IA</span></button>
+        <button role="tab" id="tab-docker" data-view="docker" aria-selected="false" title="Docker"><svg class="i" aria-hidden="true"><use href="icons.svg#container"></use></svg><span>Docker</span></button>
+        <button role="tab" id="tab-history" data-view="history" aria-selected="false" title="Historique"><svg class="i" aria-hidden="true"><use href="icons.svg#history"></use></svg><span>Historique</span></button>
+        <button role="tab" id="tab-help" data-view="help" aria-selected="false" title="Comment ça marche"><svg class="i" aria-hidden="true"><use href="icons.svg#circle-help"></use></svg><span>Comment ça marche</span></button>
       </nav>
       <div class="status">
         <span id="health" class="health" aria-live="polite">Connexion…</span>
-        <button id="analyze" class="ghost" type="button">Analyser maintenant</button>
+        <button id="analyze" class="ghost" type="button" title="Analyser le PC maintenant" aria-label="Analyser le PC maintenant"><svg class="i" aria-hidden="true"><use href="icons.svg#refresh-cw"></use></svg><span>Analyser</span></button>
       </div>
     </header>
 
@@ -38,22 +38,22 @@
       <section class="view dashboard" id="view-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
         <aside class="vitals" aria-label="État du PC">
           <div class="meter" id="m-ram">
-            <div class="meter-head"><h2>Mémoire disponible</h2><span class="value" data-v></span></div>
+            <div class="meter-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#memory-stick"></use></svg>Mémoire disponible</h2><span class="value" data-v></span></div>
             <div class="track"><span class="fill" data-b></span><i class="mark warn" data-w></i><i class="mark crit" data-c></i></div>
             <p class="hint" data-s></p>
           </div>
           <div class="meter" id="m-commit">
-            <div class="meter-head"><h2>Mémoire engagée</h2><span class="value" data-v></span></div>
+            <div class="meter-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#layers"></use></svg>Mémoire engagée</h2><span class="value" data-v></span></div>
             <div class="track"><span class="fill" data-b></span><i class="mark warn" data-w></i><i class="mark crit" data-c></i></div>
             <p class="hint" data-s></p>
           </div>
           <div class="meter" id="m-disk">
-            <div class="meter-head"><h2>Disque système libre</h2><span class="value" data-v></span></div>
+            <div class="meter-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#hard-drive"></use></svg>Disque système libre</h2><span class="value" data-v></span></div>
             <div class="track"><span class="fill" data-b></span><i class="mark warn" data-w></i><i class="mark crit" data-c></i></div>
             <p class="hint" data-s></p>
           </div>
           <div class="consumers">
-            <h2>Plus gros consommateurs</h2>
+            <h2><svg class="i" aria-hidden="true"><use href="icons.svg#activity"></use></svg>Plus gros consommateurs</h2>
             <ol id="top" class="rank"></ol>
           </div>
         </aside>
@@ -66,11 +66,11 @@
           <p id="feedback" class="feedback" role="status" aria-live="polite" hidden></p>
           <ul id="pending" class="queue scroll"></ul>
           <div id="pending-empty" class="empty" hidden>
-            <p class="empty-title">Rien à décider pour l'instant.</p>
+            <svg class="i empty-icon" aria-hidden="true"><use href="icons.svg#circle-check"></use></svg><p class="empty-title">Rien à décider pour l'instant.</p>
             <p class="muted">FreePC surveille votre PC et vous préviendra dès qu'une action sera utile.</p>
           </div>
           <div class="auto">
-            <h2>Fait automatiquement</h2>
+            <h2><svg class="i" aria-hidden="true"><use href="icons.svg#zap"></use></svg>Fait automatiquement</h2>
             <ul id="auto" class="log compact"></ul>
             <p id="auto-empty" class="muted small">Aucune action automatique récente.</p>
           </div>
@@ -80,12 +80,12 @@
       <!-- Applications -->
       <section class="view split" id="view-apps" role="tabpanel" aria-labelledby="tab-apps" hidden>
         <article class="panel">
-          <div class="section-head"><h2>Consommation des applications</h2><span id="apps-meta" class="muted small"></span></div>
+          <div class="section-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#app-window"></use></svg>Consommation des applications</h2><span id="apps-meta" class="muted small"></span></div>
           <table class="grid usage"><thead><tr><th>Application</th><th class="num">Processus</th><th class="num">Mémoire</th><th>Mode</th></tr></thead></table>
           <div class="scroll"><table class="grid usage"><tbody id="apps-usage"></tbody></table></div>
         </article>
         <article class="panel">
-          <div class="section-head"><h2>Démarre avec Windows</h2><span id="startup-meta" class="muted small"></span></div>
+          <div class="section-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#power"></use></svg>Démarre avec Windows</h2><span id="startup-meta" class="muted small"></span></div>
           <table class="grid startup"><thead><tr><th>Élément</th><th>Type</th><th>État</th></tr></thead></table>
           <div class="scroll"><table class="grid startup"><tbody id="apps-startup"></tbody></table></div>
         </article>
@@ -94,7 +94,7 @@
       <!-- Navigateurs -->
       <section class="view single" id="view-browsers" role="tabpanel" aria-labelledby="tab-browsers" hidden>
         <article class="panel">
-          <div class="section-head"><h2>Navigateurs installés</h2><span class="muted small">Les onglets inactifs sont mis en veille par le navigateur lui-même ; le redémarrage reste votre décision.</span></div>
+          <div class="section-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#globe"></use></svg>Navigateurs installés</h2><span class="muted small">Les onglets inactifs sont mis en veille par le navigateur lui-même ; le redémarrage reste votre décision.</span></div>
           <div class="scroll"><ul id="browsers" class="cards"></ul></div>
         </article>
       </section>
@@ -102,7 +102,7 @@
       <!-- IA -->
       <section class="view single" id="view-ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
         <article class="panel">
-          <div class="section-head"><h2>Applications d'IA locales</h2><span class="muted small">Un modèle déchargé n'est jamais supprimé : il se recharge à la demande suivante.</span></div>
+          <div class="section-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#brain-circuit"></use></svg>Applications d'IA locales</h2><span class="muted small">Un modèle déchargé n'est jamais supprimé : il se recharge à la demande suivante.</span></div>
           <div class="scroll"><ul id="ai" class="cards"></ul></div>
         </article>
       </section>
@@ -110,7 +110,7 @@
       <!-- Docker -->
       <section class="view single" id="view-docker" role="tabpanel" aria-labelledby="tab-docker" hidden>
         <article class="panel">
-          <div class="section-head"><h2>Docker et WSL</h2><span class="muted small">Les volumes (vos données) ne sont jamais purgés.</span></div>
+          <div class="section-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#container"></use></svg>Docker et WSL</h2><span class="muted small">Les volumes (vos données) ne sont jamais purgés.</span></div>
           <div id="docker" class="scroll"></div>
         </article>
       </section>
@@ -118,7 +118,7 @@
       <!-- Historique -->
       <section class="view split history" id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden>
         <article class="panel">
-          <div class="section-head"><h2>Dernières 24 heures</h2></div>
+          <div class="section-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#activity"></use></svg>Dernières 24 heures</h2></div>
           <figure class="chart" id="chart-box">
             <svg id="chart" viewBox="0 0 600 260" preserveAspectRatio="none" role="img" aria-label="Mémoire disponible et disque libre sur 24 heures"></svg>
             <div class="axis small muted"><span id="chart-start"></span><span id="chart-end"></span></div>
@@ -127,7 +127,7 @@
           <p id="chart-empty" class="muted" hidden>Pas encore assez de mesures.</p>
         </article>
         <article class="panel">
-          <div class="section-head"><h2>Actions et décisions</h2></div>
+          <div class="section-head"><h2><svg class="i" aria-hidden="true"><use href="icons.svg#scroll-text"></use></svg>Actions et décisions</h2></div>
           <ul id="history" class="log scroll"></ul>
           <p id="history-empty" class="muted" hidden>Aucun événement pour l'instant.</p>
         </article>
@@ -135,38 +135,116 @@
 
       <!-- Comment ça marche -->
       <section class="view help" id="view-help" role="tabpanel" aria-labelledby="tab-help" hidden>
-        <ol class="steps">
-          <li>
-            <h2>FreePC surveille</h2>
-            <p>Toutes les quelques minutes, il mesure la mémoire disponible, la mémoire engagée (mémoire vive et fichier d'échange) et l'espace libre du disque système. Les seuils d'alerte sont calculés pour la mémoire de votre PC.</p>
-            <p>Il regarde aussi ce qui consomme : applications et ce qui démarre avec Windows, navigateurs, applications d'IA, Docker et le nettoyage de Windows.</p>
-          </li>
-          <li>
-            <h2>Il propose</h2>
-            <p>Chaque piste utile devient une décision, avec son gain estimé et son explication. Les décisions critiques passent en premier. Une notification vous prévient ; si l'état devient critique pendant que vous êtes là, la fenêtre s'ouvre.</p>
-            <p>Seules les actions sans aucun risque se font seules, par exemple arrêter la machine virtuelle de Docker restée allumée sans Docker.</p>
-          </li>
-          <li>
-            <h2>Vous décidez</h2>
-            <p><strong>Appliquer</strong> lance l'action et affiche le résultat réel. Si l'action demande les droits administrateur, Windows vous demande votre accord pour elle seule.</p>
-            <p><strong>Plus tard</strong> la met de côté quelques heures, <strong>Ignorer</strong> pour plusieurs jours. Une décision disparaît d'elle-même quand la situation ne la justifie plus.</p>
-          </li>
-        </ol>
+        <div class="tour">
+          <figure class="stage" id="stage" data-scene="1" aria-hidden="true">
+            <svg viewBox="0 0 640 360" preserveAspectRatio="xMidYMid meet">
+              <rect class="s-window" x="20" y="16" width="600" height="328" rx="14"></rect>
+              <rect class="s-titlebar" x="20" y="16" width="600" height="34" rx="14"></rect>
+              <rect class="s-titlebar" x="20" y="36" width="600" height="14"></rect>
+              <circle class="s-dot" cx="44" cy="33" r="5"></circle><circle class="s-dot" cx="62" cy="33" r="5"></circle><circle class="s-dot" cx="80" cy="33" r="5"></circle>
+              <text class="s-title" x="320" y="38">FreePC</text>
+              <text class="s-example" x="604" y="38">Exemple</text>
+
+              <!-- Jauges : presentes dans toutes les scenes -->
+              <g class="s-gauges">
+                <g transform="translate(44 76)">
+                  <use href="icons.svg#memory-stick" class="s-ico" width="20" height="20"></use>
+                  <text class="s-label" x="30" y="15">Mémoire disponible</text>
+                  <rect class="s-track" x="0" y="30" width="200" height="10" rx="5"></rect>
+                  <rect class="s-fill s-ram" x="0" y="30" width="200" height="10" rx="5"></rect>
+                </g>
+                <g transform="translate(44 144)">
+                  <use href="icons.svg#layers" class="s-ico" width="20" height="20"></use>
+                  <text class="s-label" x="30" y="15">Mémoire engagée</text>
+                  <rect class="s-track" x="0" y="30" width="200" height="10" rx="5"></rect>
+                  <rect class="s-fill s-commit" x="0" y="30" width="200" height="10" rx="5"></rect>
+                </g>
+                <g transform="translate(44 212)">
+                  <use href="icons.svg#hard-drive" class="s-ico" width="20" height="20"></use>
+                  <text class="s-label" x="30" y="15">Disque libre</text>
+                  <rect class="s-track" x="0" y="30" width="200" height="10" rx="5"></rect>
+                  <rect class="s-fill s-disk" x="0" y="30" width="200" height="10" rx="5"></rect>
+                </g>
+                <text class="s-gain" x="250" y="112">+5,5 GB</text>
+              </g>
+
+              <!-- Scene 1 : analyse des composants -->
+              <g class="s1-modules">
+                <g class="s-module"><rect x="300" y="86" width="64" height="64" rx="12"></rect><use href="icons.svg#app-window" x="318" y="104" width="28" height="28"></use></g>
+                <g class="s-module"><rect x="378" y="86" width="64" height="64" rx="12"></rect><use href="icons.svg#globe" x="396" y="104" width="28" height="28"></use></g>
+                <g class="s-module"><rect x="456" y="86" width="64" height="64" rx="12"></rect><use href="icons.svg#brain-circuit" x="474" y="104" width="28" height="28"></use></g>
+                <g class="s-module"><rect x="534" y="86" width="64" height="64" rx="12"></rect><use href="icons.svg#container" x="552" y="104" width="28" height="28"></use></g>
+                <g class="s-lens"><use href="icons.svg#search" x="300" y="160" width="40" height="40"></use></g>
+                <text class="s-caption" x="449" y="236">Applications, navigateurs, IA, Docker</text>
+              </g>
+
+              <!-- Scenes 2 et 3 : la decision -->
+              <g class="s-card">
+                <rect class="s-card-bg" x="296" y="84" width="304" height="132" rx="10"></rect>
+                <rect class="s-card-edge" x="296" y="84" width="5" height="132" rx="2"></rect>
+                <text class="s-card-title" x="316" y="112">Redémarrer le navigateur</text>
+                <text class="s-card-detail" x="316" y="134">Il occupe 5,5 GB depuis 3 jours.</text>
+                <g class="s-btn s-apply"><rect x="316" y="160" width="96" height="32" rx="6"></rect><text x="364" y="181">Appliquer</text></g>
+                <g class="s-btn"><rect x="420" y="160" width="80" height="32" rx="6"></rect><text x="460" y="181">Plus tard</text></g>
+                <g class="s-btn"><rect x="508" y="160" width="72" height="32" rx="6"></rect><text x="544" y="181">Ignorer</text></g>
+                <circle class="s-ripple" cx="403" cy="185" r="10"></circle>
+              </g>
+              <g class="s-bell"><use href="icons.svg#bell" x="572" y="58" width="24" height="24"></use></g>
+              <g class="s-toast">
+                <rect x="380" y="266" width="220" height="56" rx="10"></rect>
+                <use href="icons.svg#bell" x="394" y="282" width="22" height="22"></use>
+                <text class="s-toast-title" x="426" y="290">1 nouvelle décision</text>
+                <text class="s-toast-text" x="426" y="308">Cliquez pour l'ouvrir</text>
+              </g>
+              <g class="s-shield">
+                <use href="icons.svg#shield-check" x="300" y="234" width="22" height="22"></use>
+                <text class="s-caption-left" x="330" y="250">Droits administrateur : Windows vous le demande</text>
+              </g>
+              <g class="s-cursor"><use href="icons.svg#mouse-pointer-click" x="0" y="0" width="30" height="30"></use></g>
+
+              <!-- Scene 4 : resultat reel et trace -->
+              <g class="s-done">
+                <circle class="s-done-ring" cx="448" cy="138" r="40"></circle>
+                <path class="s-done-check" d="M430 138 l12 12 l24 -26"></path>
+                <text class="s-caption" x="448" y="208">Appliqué : 5,5 GB de mémoire rendus</text>
+              </g>
+              <g class="s-log">
+                <rect x="296" y="232" width="304" height="40" rx="8"></rect>
+                <use href="icons.svg#scroll-text" x="310" y="241" width="22" height="22"></use>
+                <text x="342" y="257">Historique : navigateur redémarré</text>
+              </g>
+            </svg>
+          </figure>
+
+          <div class="chapters">
+            <ol id="chapters">
+              <li><button type="button" data-scene="1" aria-current="step"><span class="n">1</span><span class="t">FreePC surveille</span><span class="prog"><i></i></span></button>
+                <p>Toutes les quelques minutes, il mesure la mémoire, la mémoire engagée et le disque, avec des seuils calculés pour votre PC, et repère ce qui consomme : applications, navigateurs, IA locale, Docker.</p></li>
+              <li><button type="button" data-scene="2"><span class="n">2</span><span class="t">Il propose</span><span class="prog"><i></i></span></button>
+                <p hidden>Chaque piste utile devient une décision avec son gain estimé, les critiques en premier. Une notification vous prévient ; en état critique, la fenêtre s'ouvre. Seules les actions sans risque se font seules.</p></li>
+              <li><button type="button" data-scene="3"><span class="n">3</span><span class="t">Vous décidez</span><span class="prog"><i></i></span></button>
+                <p hidden><strong>Appliquer</strong> lance l'action (Windows demande votre accord si elle exige les droits administrateur). <strong>Plus tard</strong> la remet à dans <span data-snooze>24 h</span>, <strong>Ignorer</strong> à dans <span data-reject>7 jours</span>.</p></li>
+              <li><button type="button" data-scene="4"><span class="n">4</span><span class="t">Résultat réel</span><span class="prog"><i></i></span></button>
+                <p hidden>FreePC affiche ce que l'action a réellement donné et le note dans l'Historique. Une décision disparaît seule quand elle n'est plus utile.</p></li>
+            </ol>
+            <button id="tour-play" class="ghost" type="button" aria-label="Mettre en pause"><svg class="i" aria-hidden="true"><use href="icons.svg#pause"></use></svg><span>Pause</span></button>
+          </div>
+        </div>
         <div class="promises">
           <article>
-            <h2>Ce que FreePC ne fait jamais</h2>
+            <h2><svg class="i" aria-hidden="true"><use href="icons.svg#shield-check"></use></svg>Ce que FreePC ne fait jamais</h2>
             <ul>
-              <li>Désinstaller un programme, supprimer vos fichiers, vos modèles d'IA ou vos volumes Docker.</li>
+              <li>Désinstaller un programme, supprimer vos fichiers, modèles d'IA ou volumes Docker.</li>
               <li>Forcer la fermeture d'un navigateur ou d'un programme inconnu.</li>
               <li>Toucher aux composants de Windows, aux logiciels de sécurité et aux pilotes.</li>
               <li>Garder des droits administrateur : chaque action administrateur est demandée une à une.</li>
             </ul>
           </article>
           <article>
-            <h2>Vos données restent sur ce PC</h2>
+            <h2><svg class="i" aria-hidden="true"><use href="icons.svg#hard-drive"></use></svg>Vos données restent sur ce PC</h2>
             <ul>
               <li>Aucune télémétrie, aucun compte, aucun envoi.</li>
-              <li>Cette fenêtre parle uniquement à FreePC sur votre propre PC, protégée par un jeton de session.</li>
+              <li>Cette fenêtre ne parle qu'à FreePC sur ce PC, protégée par un jeton de session.</li>
               <li>Mesures, décisions et journal : <span id="data-dir" class="path"></span></li>
             </ul>
           </article>
@@ -177,7 +255,7 @@
     <footer class="foot muted small">
       <span id="machine"></span>
       <span id="cycle"></span>
-      <span>Facil FreePC, une solution Facil. © 2026 EMAC SAH AI Solutions Architect</span>
+      <span class="legal">Facil FreePC <span id="foot-version"></span>, une solution Facil. © 2026 EMAC SAH AI Solutions Architect</span>
     </footer>
   </div>
   <script src="app.js"></script>

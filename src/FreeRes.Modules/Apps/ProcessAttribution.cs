@@ -36,6 +36,7 @@ internal static class ProcessAttribution
         }
 
         var appTotals = new Dictionary<string, (int Count, int Windowed, long Bytes)>(StringComparer.Ordinal);
+        var appImage = new Dictionary<string, (string Image, bool Windowed, long Bytes)>(StringComparer.Ordinal);
         var svcTotals = new Dictionary<string, (int Count, long Bytes)>(StringComparer.OrdinalIgnoreCase);
         foreach (var p in processes)
         {
@@ -51,6 +52,14 @@ internal static class ProcessAttribution
                 {
                     appTotals.TryGetValue(appId, out var t);
                     appTotals[appId] = (t.Count + 1, t.Windowed + (p.HasWindow ? 1 : 0), t.Bytes + p.WorkingSetBytes);
+
+                    // Executable representatif (icone) : processus avec fenetre d'abord, puis le plus gros.
+                    if (!appImage.TryGetValue(appId, out var best)
+                        || (p.HasWindow && !best.Windowed)
+                        || (p.HasWindow == best.Windowed && p.WorkingSetBytes > best.Bytes))
+                    {
+                        appImage[appId] = (image, p.HasWindow, p.WorkingSetBytes);
+                    }
                 }
             }
             else if (p.SessionId == 0 && serviceByExe.TryGetValue(image, out var names))
@@ -65,7 +74,10 @@ internal static class ProcessAttribution
 
         var appNames = apps.ToDictionary(a => a.Id, a => a.Name, StringComparer.Ordinal);
         var usage = appTotals
-            .Select(kv => new AppUsage(kv.Key, appNames.GetValueOrDefault(kv.Key, kv.Key), kv.Value.Count, kv.Value.Windowed, kv.Value.Bytes))
+            .Select(kv => new AppUsage(kv.Key, appNames.GetValueOrDefault(kv.Key, kv.Key), kv.Value.Count, kv.Value.Windowed, kv.Value.Bytes)
+            {
+                IconImage = appImage.TryGetValue(kv.Key, out var img) ? img.Image : null,
+            })
             .OrderByDescending(u => u.WorkingSetBytes)
             .ToList();
         var services = svcTotals

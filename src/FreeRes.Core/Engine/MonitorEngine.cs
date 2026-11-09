@@ -37,6 +37,17 @@ public interface IStatusSource
     object? CurrentStatus { get; }
 }
 
+/// <summary>
+/// Module capable de designer l'executable dont l'icone represente un element de son etat (identifiant tel que
+/// l'interface le connait). null = pas d'icone connue. Le chemin n'est jamais fourni par l'interface.
+/// </summary>
+public interface IIconSource
+{
+    string Name { get; }
+
+    string? IconPath(string id);
+}
+
 /// <summary>Compte rendu d'un cycle de surveillance.</summary>
 public sealed record CycleReport(
     DateTimeOffset At,
@@ -81,6 +92,8 @@ public sealed class MonitorEngine(
 
     /// <summary>Modules exposant leur etat a l'interface.</summary>
     public IReadOnlyList<IStatusSource> StatusSources { get; } = modules.OfType<IStatusSource>().ToList();
+
+    public IReadOnlyList<IIconSource> IconSources { get; } = modules.OfType<IIconSource>().ToList();
 
     public MachineProfile Profile => profile;
 

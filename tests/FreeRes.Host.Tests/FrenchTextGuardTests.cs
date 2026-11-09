@@ -16,7 +16,7 @@ public sealed partial class FrenchTextGuardTests
         "necessite", "apres", "acces", "arriere", "taches", "duree", "operation", "detail", "details", "meme",
     ];
 
-    private static readonly string[] SourceDirs = ["src", "tools"];
+    private static readonly string[] SourceDirs = ["src", "tools", "extensions"];
 
     [Fact]
     public void Aucun_texte_visible_sans_accent()
@@ -24,7 +24,7 @@ public sealed partial class FrenchTextGuardTests
         var root = RepoRoot();
         var files = SourceDirs
             .SelectMany(d => Directory.EnumerateFiles(Path.Combine(root, d), "*.*", SearchOption.AllDirectories))
-            .Where(f => f.EndsWith(".cs", StringComparison.Ordinal) || f.EndsWith(".js", StringComparison.Ordinal) || f.EndsWith(".html", StringComparison.Ordinal))
+            .Where(f => f.EndsWith(".cs", StringComparison.Ordinal) || f.EndsWith(".js", StringComparison.Ordinal) || f.EndsWith(".html", StringComparison.Ordinal) || f.EndsWith(".json", StringComparison.Ordinal))
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                      && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .ToList();

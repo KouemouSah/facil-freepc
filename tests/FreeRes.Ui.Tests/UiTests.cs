@@ -38,13 +38,23 @@ internal sealed class UiModules : IResourceModule
             []));
 }
 
-internal sealed class StatusOf(string name, object status) : IResourceModule, IStatusSource
+internal sealed class StatusOf(string name, object status, IReadOnlyDictionary<string, string>? icons = null) : IResourceModule, IStatusSource, IIconSource
 {
     public string Name => name;
 
     public object? CurrentStatus => status;
 
+    public string? IconPath(string id) => icons?.GetValueOrDefault(id);
+
     public Task<ModuleEvaluation> EvaluateAsync(EngineContext context, CancellationToken cancellationToken) => Task.FromResult(ModuleEvaluation.Empty);
+}
+
+/// <summary>Extraction simulee : un PNG 1x1 valide pour tout executable.</summary>
+internal sealed class PngIcons : IIconExtractor
+{
+    public static readonly byte[] Png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+
+    public byte[]? ExtractPng(string path, int size) => Png;
 }
 
 /// <summary>Serveur reel + Edge installe, partages par les tests de la classe (le serveur est relance a chaque test).</summary>
@@ -72,9 +82,11 @@ public sealed class UiFixture : IAsyncLifetime
 
 public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLifetime
 {
-    // Taille utile mesuree sur un portable 1920x1080 a 150 % (voir MainForm.FitToScreen) : 1177x618 logiques.
-    private const int Width = 1177;
-    private const int Height = 618;
+    // Zone CLIENTE reelle (GetClientRect) de la fenetre sur un portable 1920x1080 a 150 % : 1163x581 logiques.
+    // (1177x618 est la taille de la FENETRE, bordures et titre compris : ce n'est pas la place de la page.)
+    private const int Width = 1163;
+    private const int Height = 581;
+    private const float Scale = 1.5f;   // le rendu du texte a 150 % est un peu plus large qu'a 100 %
     private const string Token = "jeton-ui-0123456789abcdef";
 
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "freeres-ui-" + Guid.NewGuid().ToString("N"));
@@ -114,7 +126,7 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
             new AppPaths(_dir),
             new StaticProbe(),
             _ => new ModuleSetup(
-                [new UiModules(), new StatusOf("apps", apps), new StatusOf("browsers", browsers), new StatusOf("ai", ai), new StatusOf("docker", docker)],
+                [new UiModules(), new StatusOf("apps", apps), new StatusOf("browsers", browsers, new Dictionary<string, string> { ["firefox"] = Path.Combine(Environment.SystemDirectory, "notepad.exe") }), new StatusOf("ai", ai), new StatusOf("docker", docker)],
                 c =>
                 {
                     c.Register(new ActionDefinition("UiCount", false, _ => null, (_, _, _) =>
@@ -130,14 +142,14 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
             _runtime.Database.AddMetrics(new SystemSnapshot(now.AddMinutes(-30 * i), 15.69, 2 + (i * 0.4), 70, 23.69, 15, 63, "C:", 235.48, 44 - (i * 0.05), 1, false, []), "monitor");
         }
 
-        _host = LocalWebHost.Create(new LocalWebHostOptions { Token = Token }, _runtime);
+        _host = LocalWebHost.Create(new LocalWebHostOptions { Token = Token, Icons = new PngIcons() }, _runtime);
         await _host.StartAsync();
         for (var i = 0; i < 50 && _runtime.Engine.LastReport is null; i++)
         {
             await Task.Delay(100);
         }
 
-        _context = await fx.Browser.NewContextAsync(new BrowserNewContextOptions { ViewportSize = new ViewportSize { Width = Width, Height = Height }, Locale = "fr-FR" });
+        _context = await fx.Browser.NewContextAsync(new BrowserNewContextOptions { ViewportSize = new ViewportSize { Width = Width, Height = Height }, DeviceScaleFactor = Scale, Locale = "fr-FR" });
         await _context.AddCookiesAsync(
         [
             new Cookie { Name = LocalWebHostOptions.TokenCookieName, Value = Token, Url = _host.BaseAddress.ToString(), HttpOnly = true, SameSite = SameSiteAttribute.Strict },
@@ -170,6 +182,22 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
         _runtime.Dispose();
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         Directory.Delete(_dir, recursive: true);
+    }
+
+    /// <summary>Rien n'est coupe : ni la page, ni les onglets (zone defilante masquee), ni le pied (debordement masque).</summary>
+    private async Task AssertNothingClipped(string where)
+    {
+        var r = await _page.EvaluateAsync<int[]>(@"() => {
+            const over = e => e.scrollWidth - e.clientWidth;
+            const bar = document.querySelector('.bar').getBoundingClientRect();
+            const last = [...document.querySelectorAll('.bar > *')].filter(e => e.offsetParent).pop().getBoundingClientRect();
+            return [document.documentElement.scrollWidth - innerWidth, over(document.querySelector('.tabs')),
+                    over(document.querySelector('.foot .legal')), Math.ceil(last.right - bar.right)];
+        }");
+        Assert.True(r[0] <= 0, $"{where} : page plus large que la fenetre de {r[0]} px");
+        Assert.True(r[1] <= 0, $"{where} : onglets coupes de {r[1]} px");
+        Assert.True(r[2] <= 0, $"{where} : mentions legales coupees de {r[2]} px");
+        Assert.True(r[3] <= 0, $"{where} : barre coupee de {r[3]} px");
     }
 
     private async Task AssertNoPageScroll(string view)
@@ -260,9 +288,56 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
             Assert.Equal("true", await _page.Locator("#tab-" + view).GetAttributeAsync("aria-selected"));
             await _page.WaitForTimeoutAsync(150);   // chargement de l'etat du module
             await AssertNoPageScroll(view);
+            await AssertNothingClipped(view);
         }
 
         Assert.True(_consoleErrors.Count == 0, string.Join(" | ", _consoleErrors));
+    }
+
+    /// <summary>
+    /// De la plus grande fenetre (1 280 logiques) a son minimum (900 de large, soit ~886 de zone cliente), aux
+    /// echelles courantes : la barre et le pied restent entiers, les onglets aussi (icone seule sous 1 100 px).
+    /// </summary>
+    [Theory]
+    [InlineData(1266, 760, 1.0f)]
+    [InlineData(1163, 581, 1.5f)]
+    [InlineData(1150, 560, 1.25f)]
+    [InlineData(1080, 545, 1.25f)]
+    [InlineData(1000, 560, 1.75f)]
+    [InlineData(886, 520, 1.0f)]
+    public async Task Barre_et_pied_entiers_a_toutes_les_largeurs(int width, int height, float scale)
+    {
+        await using var context = await fx.Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            ViewportSize = new ViewportSize { Width = width, Height = height }, DeviceScaleFactor = scale, Locale = "fr-FR",
+        });
+        await context.AddCookiesAsync([new Cookie { Name = LocalWebHostOptions.TokenCookieName, Value = Token, Url = _host.BaseAddress.ToString(), HttpOnly = true }]);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(_host.BaseAddress.ToString());
+        await page.Locator(".decision").First.WaitForAsync();
+        await page.Locator("#foot-version").Or(page.Locator("#version")).First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Attached });
+        var previous = _page;
+        _page = page;
+        try
+        {
+            foreach (var view in new[] { "dashboard", "help" })
+            {
+                await page.ClickAsync("#tab-" + view);
+                await page.WaitForTimeoutAsync(150);
+                await AssertNothingClipped($"{width}x{height} a {scale:P0} ({view})");
+            }
+
+            // Chaque onglet garde un nom accessible, meme reduit a son icone.
+            foreach (var tab in await page.Locator(".tabs button").AllAsync())
+            {
+                Assert.False(string.IsNullOrWhiteSpace(await tab.GetAttributeAsync("title")));
+                Assert.False(string.IsNullOrWhiteSpace(await tab.TextContentAsync()));
+            }
+        }
+        finally
+        {
+            _page = previous;
+        }
     }
 
     [Fact]
@@ -318,7 +393,7 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
 
         await _page.GotoAsync(_host.BaseAddress + "#help");
         await Assertions.Expect(_page.Locator("#view-help")).ToBeVisibleAsync();
-        await Assertions.Expect(_page.Locator(".steps li")).ToHaveCountAsync(3);
+        await Assertions.Expect(_page.Locator("#chapters li")).ToHaveCountAsync(4);
         await Assertions.Expect(_page.Locator("#data-dir")).ToHaveTextAsync(_runtime.Paths.DataDirectory);
     }
 
@@ -343,6 +418,115 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
             await _page.ScreenshotAsync(new PageScreenshotOptions { Path = file });
             Assert.True(new FileInfo(file).Length > 10_000, file);
         }
+    }
+
+    [Fact]
+    public async Task Icone_reelle_quand_elle_existe_sinon_icone_monochrome()
+    {
+        await _page.ClickAsync("#tab-browsers");
+        var firefox = _page.Locator("#browsers .card").Filter(new LocatorFilterOptions { HasText = "Mozilla Firefox" }).Locator(".ico");
+        var edge = _page.Locator("#browsers .card").Filter(new LocatorFilterOptions { HasText = "Microsoft Edge" }).Locator(".ico");
+        await Assertions.Expect(firefox.Locator("img")).ToHaveAttributeAsync("src", new System.Text.RegularExpressions.Regex("^data:image/png;base64,"));
+        await Assertions.Expect(edge.Locator("svg use")).ToHaveAttributeAsync("href", "icons.svg#globe");
+        Assert.Equal(0, await edge.Locator("img").CountAsync());
+
+        await _page.ClickAsync("#tab-apps");
+        await Assertions.Expect(_page.Locator("#apps-usage .ico svg").First).ToBeVisibleAsync();   // pas d'icone : repli
+        Assert.True(_consoleErrors.Count == 0, string.Join(" | ", _consoleErrors));   // 204 : aucune erreur
+    }
+
+    [Fact]
+    public async Task Chaque_icone_utilisee_existe_dans_le_sprite_et_s_affiche()
+    {
+        foreach (var view in new[] { "apps", "browsers", "ai", "docker", "help", "dashboard" })
+        {
+            await _page.ClickAsync("#tab-" + view);
+            await _page.WaitForTimeoutAsync(150);
+        }
+
+        var missing = await _page.EvaluateAsync<string[]>(@"async () => {
+            const sprite = new DOMParser().parseFromString(await (await fetch('icons.svg')).text(), 'image/svg+xml');
+            if (sprite.querySelector('parsererror')) { return ['icons.svg illisible']; }
+            const ids = new Set([...sprite.querySelectorAll('symbol')].map(s => s.id));
+            const used = new Set([...document.querySelectorAll('use')].map(u => u.getAttribute('href')));
+            return [...used].filter(h => !h.startsWith('icons.svg#') || !ids.has(h.slice(10)));
+        }");
+        Assert.Empty(missing);
+        var box = await _page.Locator("#tab-dashboard svg").BoundingBoxAsync();
+        Assert.True(box is { Width: > 10, Height: > 10 }, "icone d'onglet non rendue");
+    }
+
+    [Fact]
+    public async Task Visite_lecture_chapitres_pause_puis_fin()
+    {
+        await _page.ClickAsync("#tab-help");
+        var stage = _page.Locator("#stage");
+        var play = _page.Locator("#tour-play");
+        await Assertions.Expect(stage).ToHaveAttributeAsync("data-scene", "1");
+        await Assertions.Expect(play).ToHaveTextAsync("Pause");
+        await Assertions.Expect(_page.Locator("[data-snooze]")).ToHaveTextAsync("24 h");   // duree reelle des reglages
+
+        // A la taille reelle, chaque chapitre ouvert tient entier dans sa colonne (aucun defilement interne).
+        for (var scene = 1; scene <= 4; scene++)
+        {
+            await _page.ClickAsync($"#chapters button[data-scene='{scene}']");
+            var overflow = await _page.EvaluateAsync<int>("() => { const o = document.getElementById('chapters'); return o.scrollHeight - o.clientHeight; }");
+            Assert.True(overflow <= 0, $"chapitre {scene} : la liste deborde de {overflow} px");
+        }
+
+        // Chapitre choisi : scene, chapitre courant et son texte.
+        await _page.ClickAsync("#chapters button[data-scene='3']");
+        await Assertions.Expect(stage).ToHaveAttributeAsync("data-scene", "3");
+        await Assertions.Expect(_page.Locator("#chapters button[data-scene='3']")).ToHaveAttributeAsync("aria-current", "step");
+        await Assertions.Expect(_page.Locator("#chapters li").Nth(2).Locator("p")).ToBeVisibleAsync();
+        await Assertions.Expect(_page.Locator("#chapters li").Nth(0).Locator("p")).ToBeHiddenAsync();
+
+        // Pause : plus rien n'avance.
+        await play.ClickAsync();
+        await Assertions.Expect(play).ToHaveTextAsync("Lecture");
+        await _page.EvaluateAsync("() => document.querySelector('.tour').style.setProperty('--scene', '300ms')");
+        await _page.WaitForTimeoutAsync(800);
+        await Assertions.Expect(stage).ToHaveAttributeAsync("data-scene", "3");
+
+        // Reprise : chapitres suivants puis fin, « Revoir » relance au debut.
+        await play.ClickAsync();
+        await Assertions.Expect(stage).ToHaveAttributeAsync("data-scene", "4");
+        await Assertions.Expect(play).ToHaveTextAsync("Revoir");
+        await Assertions.Expect(_page.Locator("#chapters li[data-done]")).ToHaveCountAsync(4);
+        await play.ClickAsync();
+        await Assertions.Expect(stage).ToHaveAttributeAsync("data-scene", "1");
+        await AssertNoPageScroll("help");
+        Assert.True(_consoleErrors.Count == 0, string.Join(" | ", _consoleErrors));
+    }
+
+    /// <summary>
+    /// Windows demande de reduire les animations : aucune lecture automatique ni bouton de lecture, chaque chapitre
+    /// s'affiche fige dans son etat final. Les captures des 4 scenes (clair et sombre) servent a la revue visuelle.
+    /// </summary>
+    [Theory]
+    [InlineData(ColorScheme.Light)]
+    [InlineData(ColorScheme.Dark)]
+    public async Task Visite_figee_si_Windows_demande_moins_d_animations(ColorScheme scheme)
+    {
+        await _page.EmulateMediaAsync(new PageEmulateMediaOptions { ReducedMotion = ReducedMotion.Reduce, ColorScheme = scheme });
+        await _page.ClickAsync("#tab-dashboard");
+        await _page.ClickAsync("#tab-help");
+        await Assertions.Expect(_page.Locator("#tour-play")).ToBeHiddenAsync();
+        await _page.EvaluateAsync("() => document.querySelector('.tour').style.setProperty('--scene', '200ms')");
+        await _page.WaitForTimeoutAsync(600);
+        await Assertions.Expect(_page.Locator("#stage")).ToHaveAttributeAsync("data-scene", "1");   // n'avance pas seul
+
+        var dir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "artifacts", "ui");
+        Directory.CreateDirectory(dir);
+        for (var scene = 1; scene <= 4; scene++)
+        {
+            await _page.ClickAsync($"#chapters button[data-scene='{scene}']");
+            await Assertions.Expect(_page.Locator("#stage")).ToHaveAttributeAsync("data-scene", scene.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            await _page.WaitForTimeoutAsync(300);   // fondu entre scenes (desactive) et chargement du sprite
+            await _page.ScreenshotAsync(new PageScreenshotOptions { Path = Path.Combine(dir, $"help-scene{scene}-{scheme.ToString().ToLowerInvariant()}.png") });
+        }
+
+        Assert.True(_consoleErrors.Count == 0, string.Join(" | ", _consoleErrors));
     }
 
     [Fact]

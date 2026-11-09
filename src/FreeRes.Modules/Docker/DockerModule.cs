@@ -24,7 +24,7 @@ namespace FreeRes.Modules.Docker;
 ///     (Docker arrêté) selon l'espace mort REEL (VHDX - donnees - plancher), repli sur la taille si jamais mesure.
 /// Module inactif si Docker Desktop n'est pas installe.
 /// </summary>
-public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSource
+public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSource, IIconSource
 {
     public const string DockerPrune = "DockerPrune";
     public const string DockerTrim = "DockerTrim";
@@ -95,6 +95,11 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
         LastUsage,
         _state?.GetDate(TrimmedAtKey),
         _state?.GetDate(CompactedAtKey));
+
+    /// <summary>Identifiant d'icone de Docker Desktop pour l'interface.</summary>
+    public const string DesktopIconId = "desktop";
+
+    public string? IconPath(string id) => string.Equals(id, DesktopIconId, StringComparison.Ordinal) ? _host.DesktopExe : null;
 
     private volatile bool _lastInstalled;
     private volatile bool _lastRunning;

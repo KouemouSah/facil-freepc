@@ -74,7 +74,7 @@ button { font: inherit; color: inherit; }
 .bar {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   padding: 10px 18px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
@@ -82,14 +82,15 @@ button { font: inherit; color: inherit; }
 
 .logo { display: block; height: 30px; width: auto; }
 
-.product { display: flex; align-items: baseline; gap: 6px; }
+.product { display: flex; flex-direction: column; gap: 1px; }
+.product #version { font-size: 11.5px; line-height: 1; }
 .product .name { font: 600 18px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif; letter-spacing: -0.01em; }
 
 .tabs { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .tabs button {
   border: 0;
   background: none;
-  padding: 7px 11px;
+  padding: 7px 9px;
   border-radius: var(--radius-s);
   color: var(--muted);
   cursor: pointer;
@@ -126,6 +127,27 @@ button { font: inherit; color: inherit; }
 .btn.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); font-weight: 600; }
 .btn.primary:hover { filter: brightness(1.08); }
 button:disabled { opacity: 0.55; cursor: progress; }
+
+/* ------------------------------------------------------------------ icones */
+/* Monochromes (sprite Lucide, trait = couleur du texte) et reelles (extraites de l'executable par FreePC). */
+.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+h2 .i, h3 .i { width: 15px; height: 15px; margin-right: 6px; vertical-align: -2px; color: var(--muted); }
+.tabs button, .ghost, .btn { display: inline-flex; align-items: center; gap: 6px; }
+.tabs .i { width: 15px; height: 15px; }
+.btn .i { width: 14px; height: 14px; }
+.spin { animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-icon { width: 30px; height: 30px; color: var(--brand); margin-bottom: 4px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; }
+.tag .i { width: 13px; height: 13px; }
+.ico { width: 20px; height: 20px; flex: none; display: inline-grid; place-items: center; color: var(--muted); }
+.ico img { width: 20px; height: 20px; }
+.ico .i { width: 17px; height: 17px; margin: 0; }
+.ico.lg, .ico.lg img { width: 28px; height: 28px; }
+.ico.lg .i { width: 22px; height: 22px; }
+.cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cell .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .head h3 { display: flex; align-items: center; gap: 10px; min-width: 0; }
 
 /* ------------------------------------------------------------------ vues */
 .views { min-height: 0; padding: 14px 18px; }
@@ -283,45 +305,206 @@ h2 { font: 600 14px/1.3 "Segoe UI Variable Display", "Segoe UI", sans-serif; }
 .history .log { flex: 1; }
 
 /* ------------------------------------------------------------------ comment ca marche */
-.help { display: grid; grid-template-rows: 1fr auto; gap: 14px; overflow-y: auto; }
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; counter-reset: step; }
-.steps li {
-  counter-increment: step;
-  position: relative;
-  padding: 16px 18px 16px 62px;
-  background: var(--surface);
+/* Une scene SVG animee en 4 chapitres. Le minutage vient d'UNE source : la barre de progression du chapitre actif
+   (animation CSS) ; sa fin fait passer au chapitre suivant. Pause = animation-play-state sur toute la visite.
+   Chaque element a pour style STATIQUE l'etat final de sa scene : sans animation (reduction des animations),
+   chaque chapitre reste lisible tel quel. */
+.help { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 14px; }
+.tour { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(290px, 1fr); gap: 14px; min-height: 0; --scene: 7s; }
+
+.stage {
+  margin: 0;
+  min-height: 0;
+  display: flex;
+  padding: 8px;
   border: 1px solid var(--line);
   border-radius: var(--radius-m);
+  background-color: var(--sunken);
+  background-image: radial-gradient(var(--line) 1px, transparent 1.2px);
+  background-size: 18px 18px;
 }
-.steps li::before {
-  content: counter(step);
-  position: absolute;
-  left: 18px;
-  top: 12px;
-  font: 700 32px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif;
-  color: var(--brand);
+.stage svg { width: 100%; height: 100%; overflow: visible; }
+.stage use { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--ink); }
+.stage text { font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif; fill: var(--ink); }
+.s-window { fill: var(--surface); stroke: var(--line); }
+.s-titlebar { fill: var(--bg); }
+.s-dot { fill: var(--line); }
+.stage .s-title { font-weight: 600; font-size: 13px; text-anchor: middle; fill: var(--muted); }
+.stage .s-example { font-size: 11px; text-anchor: end; fill: var(--muted); }
+.stage .s-label { font-size: 13px; fill: var(--muted); }
+.stage .s-ico { color: var(--muted); }
+.s-track { fill: var(--track); }
+.s-fill { transform-box: fill-box; transform-origin: left center; fill: var(--brand); transition: transform 500ms ease, fill 500ms ease; }
+.s-ram { transform: scaleX(0.6); }
+.s-commit { transform: scaleX(0.55); }
+.s-disk { transform: scaleX(0.5); }
+.stage .s-caption { font-size: 13px; text-anchor: middle; fill: var(--muted); }
+.stage .s-caption-left { font-size: 12.5px; fill: var(--muted); }
+
+/* Elements de scene : caches hors de leur scene (fondu). */
+.s1-modules, .s-card, .s-bell, .s-toast, .s-shield, .s-cursor, .s-done, .s-log, .s-gain {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 250ms ease, visibility 0s linear 250ms;
 }
-.steps h2 { font-size: 16px; margin-bottom: 6px; }
-.steps p { color: var(--muted); font-size: 13px; max-width: 70ch; }
-.steps p + p { margin-top: 6px; }
+.stage[data-scene="1"] .s1-modules,
+.stage[data-scene="2"] :is(.s-card, .s-bell, .s-toast),
+.stage[data-scene="3"] :is(.s-card, .s-shield, .s-cursor),
+.stage[data-scene="4"] :is(.s-done, .s-log, .s-gain) { opacity: 1; visibility: visible; transition: opacity 250ms ease; }
+
+/* Scenes 1 a 3 : la memoire baisse puis reste en alerte ; scene 4 : elle est rendue. */
+.stage:is([data-scene="1"], [data-scene="2"], [data-scene="3"]) .s-ram { transform: scaleX(0.2); fill: var(--warn); }
+.stage:is([data-scene="1"], [data-scene="2"], [data-scene="3"]) .s-commit { transform: scaleX(0.82); fill: var(--warn); }
+.stage[data-scene="1"] .s-ram { animation: ram-drop calc(var(--scene) * 0.7) ease-in-out both; }
+.stage[data-scene="1"] .s-commit { animation: commit-rise calc(var(--scene) * 0.7) ease-in-out both; }
+@keyframes ram-drop { from { transform: scaleX(0.6); fill: var(--brand); } 60% { fill: var(--brand); } to { transform: scaleX(0.2); fill: var(--warn); } }
+@keyframes commit-rise { from { transform: scaleX(0.55); fill: var(--brand); } 60% { fill: var(--brand); } to { transform: scaleX(0.82); fill: var(--warn); } }
+
+/* Scene 1 : les composants apparaissent, la loupe les passe en revue. */
+.s-module rect { fill: var(--sunken); stroke: var(--line); }
+.s-module { transform-box: fill-box; transform-origin: center; }
+.stage[data-scene="1"] .s-module { animation: pop 450ms cubic-bezier(.2, .8, .3, 1.3) both; }
+.stage[data-scene="1"] .s-module:nth-child(2) { animation-delay: 150ms; }
+.stage[data-scene="1"] .s-module:nth-child(3) { animation-delay: 300ms; }
+.stage[data-scene="1"] .s-module:nth-child(4) { animation-delay: 450ms; }
+@keyframes pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+.s-lens { transform: translateX(234px); }
+.stage .s-lens use { color: var(--brand); stroke-width: 2.4; }
+.stage[data-scene="1"] .s-lens { animation: scan calc(var(--scene) * 0.75) ease-in-out 600ms both; }
+@keyframes scan {
+  0% { transform: translateX(0); } 22% { transform: translateX(0); }
+  30% { transform: translateX(78px); } 48% { transform: translateX(78px); }
+  56% { transform: translateX(156px); } 74% { transform: translateX(156px); }
+  82% { transform: translateX(234px); } 100% { transform: translateX(234px); }
+}
+
+/* Scenes 2 et 3 : la decision. */
+.s-card-bg { fill: var(--surface); stroke: var(--line); }
+.s-card-edge { fill: var(--warn); }
+.stage .s-card-title { font-weight: 600; font-size: 15px; }
+.stage .s-card-detail { font-size: 12.5px; fill: var(--muted); }
+.s-btn rect { fill: var(--surface); stroke: var(--line); }
+.stage .s-btn text { font-size: 12.5px; text-anchor: middle; }
+.s-apply rect { fill: var(--brand); stroke: var(--brand); }
+.stage .s-apply text { fill: var(--brand-ink); font-weight: 600; }
+.s-apply { transform-box: fill-box; transform-origin: center; }
+.stage[data-scene="2"] .s-card { animation: slide-in 600ms cubic-bezier(.2, .8, .2, 1) 300ms both; }
+@keyframes slide-in { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+.s-bell { transform-box: fill-box; transform-origin: 50% 10%; }
+.stage .s-bell use { color: var(--warn); }
+.stage[data-scene="2"] .s-bell { animation: ring 900ms ease-in-out 1100ms 2 both; }
+@keyframes ring { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(16deg); } 45% { transform: rotate(-14deg); } 70% { transform: rotate(8deg); } }
+.s-toast rect { fill: var(--surface); stroke: var(--line); }
+.stage .s-toast use { color: var(--brand); }
+.stage .s-toast-title { font-weight: 600; font-size: 13px; }
+.stage .s-toast-text { font-size: 12px; fill: var(--muted); }
+.stage[data-scene="2"] .s-toast { animation: rise 500ms cubic-bezier(.2, .8, .2, 1) 1900ms both; }
+@keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+
+.s-cursor { transform: translate(392px, 174px); }
+.stage .s-cursor use { color: var(--ink); fill: var(--surface); }
+.stage[data-scene="3"] .s-cursor { animation: point 1500ms cubic-bezier(.4, 0, .2, 1) 400ms both; }
+@keyframes point { from { transform: translate(250px, 320px); } to { transform: translate(392px, 174px); } }
+.stage[data-scene="3"] .s-apply { animation: press 300ms ease 1950ms both; }
+@keyframes press { 50% { transform: scale(0.92); } }
+.s-ripple { fill: none; stroke: var(--brand); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.stage[data-scene="3"] .s-ripple { animation: ripple 700ms ease-out 2000ms both; }
+@keyframes ripple { from { opacity: 0.9; transform: scale(0.4); } to { opacity: 0; transform: scale(3.2); } }
+.stage .s-shield use { color: var(--brand); }
+.stage[data-scene="3"] .s-shield { animation: fade-up 500ms ease 2700ms both; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Scene 4 : resultat reel. */
+.stage[data-scene="4"] .s-ram { transform: scaleX(0.62); animation: ram-back 1200ms ease-out 300ms both; }
+.stage[data-scene="4"] .s-commit { transform: scaleX(0.5); animation: commit-back 1200ms ease-out 300ms both; }
+@keyframes ram-back { from { transform: scaleX(0.2); fill: var(--warn); } to { transform: scaleX(0.62); fill: var(--brand); } }
+@keyframes commit-back { from { transform: scaleX(0.82); fill: var(--warn); } to { transform: scaleX(0.5); fill: var(--brand); } }
+.stage .s-gain { font: 700 16px "Segoe UI Variable Display", "Segoe UI", sans-serif; fill: var(--brand); }
+.stage[data-scene="4"] .s-gain { animation: fade-up 600ms ease 900ms both; }
+.s-done-ring { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 3; stroke-dasharray: 252; stroke-dashoffset: 0; }
+.s-done-check { fill: none; stroke: var(--brand); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; stroke-dashoffset: 0; }
+.stage[data-scene="4"] .s-done-ring { animation: draw-ring 800ms ease-out 200ms both; }
+.stage[data-scene="4"] .s-done-check { animation: draw-check 450ms ease-out 900ms both; }
+@keyframes draw-ring { from { stroke-dashoffset: 252; } to { stroke-dashoffset: 0; } }
+@keyframes draw-check { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
+.s-log rect { fill: var(--sunken); stroke: var(--line); }
+.stage .s-log text { font-size: 13px; }
+.stage .s-log use { color: var(--muted); }
+.stage[data-scene="4"] .s-log { animation: fade-up 500ms ease 2000ms both; }
+
+/* Chapitres. */
+.chapters { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); }
+.chapters ol { flex: 1; display: flex; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; }
+.chapters li button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.chapters li button:hover { background: var(--sunken); }
+.chapters .n { font: 700 18px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif; color: var(--muted); }
+.chapters .t { font: 600 14px/1.3 "Segoe UI Variable Display", "Segoe UI", sans-serif; color: var(--muted); }
+.chapters button[aria-current="step"] .n { color: var(--brand); }
+.chapters button[aria-current="step"] .t { color: var(--ink); }
+.chapters .prog { grid-column: 2; height: 3px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.chapters .prog i { display: block; height: 100%; background: var(--brand); transform-origin: left; transform: scaleX(0); }
+.chapters li[data-done] .prog i { transform: scaleX(1); }
+.chapters button[aria-current="step"] .prog i { animation: progress var(--scene) linear both; }
+@keyframes progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.chapters li p { padding: 2px 8px 6px 42px; font-size: 13px; color: var(--muted); }
+.tour.paused :is(.stage, .stage *, .prog i) { animation-play-state: paused !important; }
+#tour-play { align-self: flex-start; }
+
 .promises { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.promises article { padding: 14px 18px; border-radius: var(--radius-m); background: var(--sunken); border: 1px solid var(--line); }
-.promises h2 { margin-bottom: 6px; }
-.promises li { position: relative; padding-left: 16px; font-size: 13px; color: var(--muted); margin-top: 3px; }
+.promises article { padding: 12px 16px; border-radius: var(--radius-m); background: var(--sunken); border: 1px solid var(--line); }
+.promises h2 { margin-bottom: 4px; }
+.promises li { position: relative; padding-left: 16px; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
 .promises li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
 
 /* ------------------------------------------------------------------ pied */
 .foot { display: flex; gap: 18px; padding: 6px 18px; border-top: 1px solid var(--line); background: var(--surface); white-space: nowrap; overflow: hidden; }
-.foot span:last-child { margin-left: auto; }
+/* Fenetre etroite : la description de la machine se coupe d'abord, puis l'analyse ; jamais les mentions legales. */
+.foot > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.foot > #machine { flex-shrink: 3; }
+.foot > #cycle { flex-shrink: 2; }
+.foot > .legal { flex-shrink: 0; margin-left: auto; }
+.foot #foot-version { display: none; }
+
+/* Barre en deux paliers (largeur utile de la fenetre, de 1 280 px a son minimum de 900 px) :
+   1. sous 1 240 px, le nom et la version quittent la barre (le logo et le titre de la fenetre nomment le produit ;
+      la version passe dans le pied) ;
+   2. sous 1 100 px, les onglets non selectionnes et « Analyser » n'affichent plus que leur icone : nom accessible
+      et infobulle conserves. */
+@media (max-width: 1239px) {
+  .product { display: none; }
+  .foot #foot-version { display: inline; }
+}
+@media (max-width: 1099px) {
+  .tabs button[aria-selected="false"] span, #analyze span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tabs button[aria-selected="false"] { padding: 7px 10px; }
+  .health { font-size: 12px; }
+}
 
 /* Fenetre etroite : colonnes empilees, la page peut alors defiler. */
 @media (max-width: 860px) {
   body { overflow: auto; }
   .app { height: auto; min-height: 100vh; }
   .bar { flex-wrap: wrap; }
-  .dashboard, .split, .steps, .promises { grid-template-columns: 1fr; }
+  .dashboard, .split, .tour, .promises { grid-template-columns: 1fr; }
+  .stage { height: 320px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fill { transition: none; }
+  .fill, .s-fill { transition: none; }
+  .spin { animation: none; }
+  /* Visite : chaque chapitre s'affiche dans son etat final, sans mouvement ; on avance avec les chapitres. */
+  .stage, .stage *, .chapters .prog i { animation: none !important; transition: none !important; }
+  #tour-play { display: none; }
 }

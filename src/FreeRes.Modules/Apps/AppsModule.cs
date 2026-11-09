@@ -23,7 +23,7 @@ namespace FreeRes.Modules.Apps;
 /// demander l'UAC (inutile pour HKCU, et ecrirait dans le HKCU du compte administrateur si un autre compte eleve), soit
 /// jamais (echec d'acces sur HKLM).
 /// </summary>
-public sealed partial class AppsModule : IResourceModule, IActionObserver, IStatusSource
+public sealed partial class AppsModule : IResourceModule, IActionObserver, IStatusSource, IIconSource
 {
     public const string DisableStartupItem = "DisableStartupItem";
     public const string EnableStartupItem = "EnableStartupItem";
@@ -66,6 +66,26 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
     public AppsInventory? LastInventory => Volatile.Read(ref _last);
 
     public object? CurrentStatus => LastInventory;
+
+    /// <summary>
+    /// Icone : application active (image de son processus representatif) ou element de demarrage (son executable).
+    /// Un element lance par un programme de Windows (svchost, rundll32, wscript...) n'a pas d'icone : celle de l'hote
+    /// tromperait sur ce qui demarre.
+    /// </summary>
+    public string? IconPath(string id)
+    {
+        var inv = LastInventory;
+        var usage = inv?.Usage.FirstOrDefault(u => string.Equals(u.AppId, id, StringComparison.Ordinal));
+        if (usage is not null)
+        {
+            return usage.IconImage;
+        }
+
+        var exe = inv?.StartupItems.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.Ordinal))?.ExecutablePath;
+        return exe is null || AppPathRules.IsUnder(exe, WindowsDirectory) ? null : exe;
+    }
+
+    private static readonly string WindowsDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
 
     [GeneratedRegex("^su-[0-9a-f]{16}$")]
     private static partial Regex StartupIdPattern();

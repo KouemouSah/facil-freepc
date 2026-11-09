@@ -37,6 +37,54 @@ function make(tag, props, ...children) {
   return node;
 }
 
+const SVGNS = "http://www.w3.org/2000/svg";
+const SEVERITY_ICON = { Crit: "triangle-alert", Warn: "circle-alert", Info: "info" };
+
+// Icone monochrome du sprite (decorative : le texte voisin porte le sens).
+function icon(name, cls) {
+  const svg = document.createElementNS(SVGNS, "svg");
+  svg.setAttribute("class", "i" + (cls ? " " + cls : ""));
+  svg.setAttribute("aria-hidden", "true");
+  const use = document.createElementNS(SVGNS, "use");
+  use.setAttribute("href", "icons.svg#" + name);
+  svg.append(use);
+  return svg;
+}
+
+// Icone reelle de l'element, extraite de son executable par FreePC (200 = PNG, 204 = pas d'icone) ; l'icone
+// monochrome reste affichee sinon. Une requete par element et par session de la page (presences et absences
+// retenues) ; l'image passe en data: (seule source d'image autorisee avec 'self' par la politique de securite).
+const iconCache = new Map();
+function iconData(src) {
+  if (!iconCache.has(src)) {
+    iconCache.set(src, fetch(src, { credentials: "same-origin" })
+      .then(r => r.status === 200 ? r.blob() : null)
+      .then(blob => blob && new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      }))
+      .catch(() => null));
+  }
+  return iconCache.get(src);
+}
+
+function realIcon(module, id, fallback, large) {
+  const box = make("span", { class: "ico" + (large ? " lg" : "") }, icon(fallback));
+  if (id) {
+    iconData("/api/icons/" + module + "/" + encodeURIComponent(id)).then(url => {
+      if (url) { box.replaceChildren(make("img", { alt: "", src: url })); }
+    });
+  }
+  return box;
+}
+
+// Libelle d'un bouton a icone (le texte reste dans un span : on peut le changer sans perdre l'icone).
+function iconButton(name, label, props) {
+  return make("button", Object.assign({ type: "button" }, props), icon(name), make("span", { text: label }));
+}
+
 function gb(v) { return v === null || v === undefined ? "—" : nf2.format(v) + " GB"; }
 function bytesGB(b) { return gb(b / 1073741824); }
 function time(iso) { return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
@@ -69,6 +117,7 @@ function showView(name) {
   if (location.hash !== "#" + name) { history.replaceState(null, "", "#" + name); }
   clearInterval(moduleTimer);
   moduleTimer = null;
+  if (name === "help") { startTour(); } else { tour.root.classList.add("paused"); }
   const loaders = { apps: loadApps, browsers: loadBrowsers, ai: loadAi, docker: loadDocker, history: loadHistory };
   if (loaders[name]) {
     loaders[name]();
@@ -146,19 +195,21 @@ function renderState(s) {
       (s.lastCycle.errors.length ? " (" + s.lastCycle.errors.length + " module(s) en erreur)" : "")
     : "Première analyse en cours";
   el("data-dir").textContent = s.dataDirectory || "";
+  document.querySelector("[data-snooze]").textContent = hours(s.snoozeHours);
+  document.querySelector("[data-reject]").textContent = hours(s.rejectHours);
 }
 
 function renderPending(s) {
   const busyIds = new Set([...document.querySelectorAll(".decision[data-busy]")].map(n => n.dataset.id));
   el("pending").replaceChildren(...s.pending.map(d => {
     const actions = make("div", { class: "actions" },
-      make("button", { class: "btn primary", type: "button", text: "Appliquer", "data-act": "approve" }),
-      make("button", { class: "btn", type: "button", text: "Plus tard", "data-act": "snooze", title: "Revient dans " + hours(s.snoozeHours) }),
-      make("button", { class: "btn", type: "button", text: "Ignorer", "data-act": "reject", title: "Ignorée pendant " + hours(s.rejectHours) }));
+      iconButton("check", "Appliquer", { class: "btn primary", "data-act": "approve" }),
+      iconButton("clock", "Plus tard", { class: "btn", "data-act": "snooze", title: "Revient dans " + hours(s.snoozeHours) }),
+      iconButton("x", "Ignorer", { class: "btn", "data-act": "reject", title: "Ignorée pendant " + hours(s.rejectHours) }));
     const tags = make("div", { class: "tags" },
-      make("span", { class: "tag sev-" + d.severity, text: SEVERITY[d.severity] || d.severity }),
+      make("span", { class: "tag sev-" + d.severity }, icon(SEVERITY_ICON[d.severity] || "info"), SEVERITY[d.severity] || d.severity),
       d.estGainGB > 0 ? make("span", { class: "tag", text: "gain estimé " + gb(d.estGainGB) }) : null,
-      d.requiresAdmin ? make("span", { class: "tag", text: "Windows demandera votre accord administrateur" }) : null);
+      d.requiresAdmin ? make("span", { class: "tag" }, icon("shield"), "Windows demandera votre accord administrateur") : null);
     const li = make("li", { class: "decision", "data-severity": d.severity, "data-id": d.id },
       make("p", { class: "title", text: d.title }), actions, make("p", { class: "detail", text: d.detail }), tags);
     if (busyIds.has(d.id)) { setBusy(li, true); }
@@ -216,8 +267,10 @@ el("pending").addEventListener("click", async e => {
 
 el("analyze").addEventListener("click", async () => {
   const b = el("analyze");
+  const label = b.querySelector("span");
   b.disabled = true;
-  b.textContent = "Analyse…";
+  b.querySelector("svg").classList.add("spin");
+  label.textContent = "Analyse…";
   try {
     const r = await post("/api/cycle");
     const c = r.body;
@@ -228,7 +281,8 @@ el("analyze").addEventListener("click", async () => {
     feedback(false, "L'analyse a échoué (" + err.message + ").");
   } finally {
     b.disabled = false;
-    b.textContent = "Analyser maintenant";
+    b.querySelector("svg").classList.remove("spin");
+    label.textContent = "Analyser";
     await refresh();
   }
 });
@@ -250,14 +304,14 @@ function waiting(target, text) {
   target.replaceChildren(make("p", { class: "muted empty-panel", text: text }));
 }
 
-function card(title, big, rows, note) {
+function card(title, big, rows, note, iconEl) {
   const dl = make("dl");
   for (const [k, v] of rows) {
     if (v === null || v === undefined || v === "") { continue; }
     dl.append(make("dt", { text: k }), make("dd", { text: v }));
   }
   return make("li", { class: "card" },
-    make("div", { class: "head" }, make("h3", { text: title }), big ? make("span", { class: "big", text: big }) : null),
+    make("div", { class: "head" }, make("h3", null, iconEl || null, title), big ? make("span", { class: "big", text: big }) : null),
     dl, note ? make("p", { class: "small muted", text: note }) : null);
 }
 
@@ -267,14 +321,14 @@ async function loadApps() {
     if (!inv) { waiting(el("apps-usage"), "Inventaire au prochain cycle d'analyse."); el("apps-startup").replaceChildren(); return; }
     const usage = [...inv.usage].filter(u => u.processCount > 0).sort((a, b) => b.workingSetBytes - a.workingSetBytes);
     el("apps-usage").replaceChildren(...usage.map(u => make("tr", null,
-      make("td", { text: u.name, title: u.name }),
+      make("td", { title: u.name }, make("div", { class: "cell" }, realIcon("apps", u.appId, "app-window"), make("span", { class: "label", text: u.name }))),
       make("td", { class: "num", text: u.processCount }),
       make("td", { class: "num", text: gb(u.workingSetGB) }),
       make("td", null, make("span", { class: u.background ? "pill bg" : "pill", text: u.background ? "Arrière-plan" : "Avec fenêtre" })))));
     el("apps-meta").textContent = plural(inv.apps.length, "application installée", "applications installées") + ", " + plural(usage.length, "active", "actives");
     const startup = [...inv.startupItems].sort((a, b) => Number(b.enabled) - Number(a.enabled) || a.name.localeCompare(b.name, "fr"));
     el("apps-startup").replaceChildren(...startup.map(s => make("tr", null,
-      make("td", { text: s.name, title: s.command || s.name }),
+      make("td", { title: s.command || s.name }, make("div", { class: "cell" }, realIcon("apps", s.id, "power"), make("span", { class: "label", text: s.name }))),
       make("td", { text: STARTUP_KIND[s.kind] || s.kind }),
       make("td", null, make("span", { class: s.enabled && !s.protection ? "pill on" : "pill", text: s.protection ? "Protégé" : s.enabled ? "Activé" : "Désactivé", title: s.protection || "" })))));
     el("startup-meta").textContent = plural(startup.filter(s => s.enabled).length, "activé", "activés") + " sur " + startup.length;
@@ -292,7 +346,7 @@ async function loadBrowsers() {
       ["Mise en veille des onglets", b.memorySaverNote],
       ["Profils ouverts", b.activeProfiles > 0 ? String(b.activeProfiles) : null],
       ["Extension FreePC", b.extensionInstalled === null || b.extensionInstalled === undefined ? null : b.extensionInstalled ? "Installée" : "Absente"],
-    ], "Redémarrage : " + b.restartNote)));
+    ], "Redémarrage : " + b.restartNote, realIcon("browsers", b.id, "globe", true))));
   } catch (err) { waiting(list, "Lecture impossible (" + err.message + ")."); }
 }
 
@@ -310,7 +364,7 @@ async function loadAi() {
       ["Dossier des modèles", a.modelsDir],
       ["Modèles installés", a.installedModelCount > 0 ? String(a.installedModelCount) : null],
       ["Modèles chargés", a.loadedModels.length ? a.loadedModels.map(m => m.name + " " + bytesGB(m.sizeBytes) + " (graphique " + bytesGB(m.vramBytes) + ")").join(", ") : null],
-    ], a.note)));
+    ], a.note, realIcon("ai", a.id, "brain-circuit", true))));
   } catch (err) { waiting(list, "Lecture impossible (" + err.message + ")."); }
 }
 
@@ -332,9 +386,80 @@ async function loadDocker() {
       ["Dernier compactage", d.compactedAt ? dayTime(d.compactedAt) : "Jamais"],
     ];
     box.replaceChildren(make("ul", { class: "cards" }, card("Docker Desktop", u ? gb(u.vhdxGB) : null, rows,
-      "Le disque virtuel de Docker ne rétrécit jamais seul : FreePC récupère l'espace libéré à l'intérieur, puis propose le compactage quand le gain réel le justifie.")));
+      "Le disque virtuel de Docker ne rétrécit jamais seul : FreePC récupère l'espace libéré à l'intérieur, puis propose le compactage quand le gain réel le justifie.",
+      realIcon("docker", "desktop", "container", true))));
   } catch (err) { waiting(box, "Lecture impossible (" + err.message + ")."); }
 }
+
+// ------------------------------------------------------------------ visite « Comment ça marche »
+// Le minutage vient de la barre de progression du chapitre actif (animation CSS « progress ») : sa fin passe au
+// chapitre suivant ; la pause gele toutes les animations de la visite. Une seule lecture, puis « Revoir ».
+// Si Windows demande de réduire les animations : aucune lecture automatique, chaque chapitre s'affiche figé.
+const tour = {
+  root: document.querySelector(".tour"),
+  stage: el("stage"),
+  chapters: el("chapters"),
+  play: el("tour-play"),
+  reduced: window.matchMedia("(prefers-reduced-motion: reduce)"),
+  scene: 1,
+  ended: false,
+};
+
+function tourScene(n) {
+  tour.scene = n;
+  const items = [...tour.chapters.children];
+  // Retirer puis remettre l'etat (apres un recalcul) relance les animations, meme pour la scene en cours.
+  items.forEach(li => li.querySelector("button").removeAttribute("aria-current"));
+  tour.stage.dataset.scene = "0";
+  void tour.root.offsetWidth;
+  items.forEach((li, i) => {
+    const current = i + 1 === n;
+    if (current) { li.querySelector("button").setAttribute("aria-current", "step"); }
+    li.querySelector("p").hidden = !current;
+    if (i + 1 < n) { li.dataset.done = "1"; } else { delete li.dataset.done; }
+  });
+  tour.stage.dataset.scene = String(n);
+  tour.chapters.children[n - 1].scrollIntoView({ block: "nearest" });
+}
+
+function tourState(playing) {
+  tour.root.classList.toggle("paused", !playing);
+  const [name, label, aria] = tour.ended ? ["rotate-ccw", "Revoir", "Revoir depuis le début"]
+    : playing ? ["pause", "Pause", "Mettre en pause"] : ["play", "Lecture", "Reprendre la lecture"];
+  tour.play.querySelector("use").setAttribute("href", "icons.svg#" + name);
+  tour.play.querySelector("span").textContent = label;
+  tour.play.setAttribute("aria-label", aria);
+}
+
+function startTour() {
+  tour.ended = false;
+  tourScene(1);
+  tourState(!tour.reduced.matches);
+}
+
+tour.chapters.addEventListener("animationend", e => {
+  if (e.animationName !== "progress") { return; }
+  if (tour.scene < tour.chapters.children.length) {
+    tourScene(tour.scene + 1);
+  } else {
+    tour.chapters.lastElementChild.dataset.done = "1";
+    tour.ended = true;
+    tourState(false);
+  }
+});
+
+tour.chapters.addEventListener("click", e => {
+  const b = e.target.closest("button[data-scene]");
+  if (!b) { return; }
+  tour.ended = false;
+  tourScene(Number(b.dataset.scene));
+  tourState(!tour.reduced.matches && !tour.root.classList.contains("paused"));
+});
+
+tour.play.addEventListener("click", () => {
+  if (tour.ended) { startTour(); return; }
+  tourState(tour.root.classList.contains("paused"));
+});
 
 // ------------------------------------------------------------------ historique
 async function loadHistory() {
@@ -394,6 +519,7 @@ async function refresh() {
   try {
     const h = (await api("/api/health")).body;
     el("version").textContent = "v" + h.version;
+    el("foot-version").textContent = "v" + h.version;
   } catch { /* la version n'est qu'informative */ }
   showView(location.hash.slice(1) || "dashboard");
   await refresh();

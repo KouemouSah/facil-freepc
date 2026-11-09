@@ -27,6 +27,10 @@ internal sealed class FakeAiPlatform : IAiPlatform
     }
 
     public (int Count, long Bytes) ProcessesUnder(string folder) => Processes.GetValueOrDefault(folder);
+
+    public Dictionary<string, List<string>> Exes { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public IReadOnlyList<string> ExecutablesIn(string folder) => Exes.GetValueOrDefault(folder) ?? [];
 }
 
 /// <summary>Serveur Ollama simule (null = injoignable).</summary>
@@ -227,6 +231,21 @@ public sealed class AiModuleTests : IDisposable
         Assert.Equal(9, st.ModelsDiskGB);
         Assert.Contains("non vérifié", st.Note, StringComparison.Ordinal);
         Assert.Empty(eval.Proposals);   // pression memoire, mais aucune action LM Studio non vérifiée
+        Assert.Null(m.IconPath("lmstudio"));   // aucun executable dans le dossier : pas d'icone
+    }
+
+    [Fact]
+    public async Task Icone_executable_principal_jamais_le_desinstalleur_ni_la_mise_a_jour()
+    {
+        _p.Dirs.UnionWith([LmInstall, LmModels]);
+        _p.Exes[LmInstall] = ["Uninstall LM Studio.exe", "Update.exe", "helper.exe", "LM Studio.exe"];
+        var m = Module();
+        await m.EvaluateAsync(Context(), default);
+
+        Assert.Equal(Path.Combine(LmInstall, "LM Studio.exe"), m.IconPath("lmstudio"));
+        Assert.Null(m.IconPath("inconnue"));
+        Assert.Equal("chat.exe", AiModule.MainExecutable("GPT4All", ["unins000.exe", "chat.exe"]));   // repli : premier restant
+        Assert.Null(AiModule.MainExecutable("Jan", ["uninstall.exe"]));
     }
 
     [Fact]

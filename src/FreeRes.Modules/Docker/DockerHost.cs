@@ -14,6 +14,9 @@ public interface IDockerHost
     /// <summary>Chemin du CLI docker.exe, ou null s'il est absent.</summary>
     string? DockerCli { get; }
 
+    /// <summary>Chemin de « Docker Desktop.exe » (source de l'icone), ou null s'il est absent.</summary>
+    string? DesktopExe { get; }
+
     /// <summary>Chemin de wsl.exe, ou null s'il est absent.</summary>
     string? WslExe { get; }
 
@@ -40,6 +43,8 @@ public sealed class WindowsDockerHost : IDockerHost
     private static readonly string DockerDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Docker", "Docker");
 
     public bool IsInstalled => DockerCli is not null || File.Exists(Path.Combine(DockerDir, "Docker Desktop.exe"));
+
+    public string? DesktopExe => Existing(Path.Combine(DockerDir, "Docker Desktop.exe"));
 
     public string? DockerCli => Existing(Path.Combine(DockerDir, "resources", "bin", "docker.exe"));
 

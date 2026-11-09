@@ -17,4 +17,7 @@ public sealed class LocalWebHostOptions
 
     /// <summary>Instant de demarrage expose par /api/health.</summary>
     public DateTimeOffset StartedAt { get; init; } = DateTimeOffset.Now;
+
+    /// <summary>Extraction des icones des applications (null = icones monochromes seules).</summary>
+    public IIconExtractor? Icons { get; init; }
 }

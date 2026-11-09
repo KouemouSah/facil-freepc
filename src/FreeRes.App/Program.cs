@@ -58,7 +58,7 @@ internal static class Program
 
         using (runtime)
         {
-            var options = new LocalWebHostOptions { Token = SessionToken.Create() };
+            var options = new LocalWebHostOptions { Token = SessionToken.Create(), Icons = new ShellIconExtractor() };
             var host = LocalWebHost.Create(options, runtime);
             host.StartAsync().GetAwaiter().GetResult();
             try

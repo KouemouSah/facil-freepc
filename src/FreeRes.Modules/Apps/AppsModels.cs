@@ -80,6 +80,10 @@ public sealed record AppUsage(string AppId, string Name, int ProcessCount, int W
     public bool Background => ProcessCount > 0 && WindowedProcessCount == 0;
 
     public double WorkingSetGB => Math.Round(WorkingSetBytes / 1073741824d, 2);
+
+    /// <summary>Image du processus representatif (fenetre d'abord, puis le plus gros) : source de l'icone. Non exposee.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? IconImage { get; init; }
 }
 
 /// <summary>Consommation d'un service (processus de la session 0 dont l'image est celle du service).</summary>

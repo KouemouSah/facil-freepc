@@ -218,6 +218,24 @@ public sealed partial class AppsModuleTests : IDisposable
     }
 
     [Fact]
+    public void Icone_processus_avec_fenetre_d_abord_puis_le_plus_gros()
+    {
+        _w.App("Ui", "Ui", location: @"C:\Ui");
+        _w.App("Bg", "Bg", location: @"C:\Bg");
+        _w.Process(@"C:\Ui\helper.exe", 900);
+        _w.Process(@"C:\Ui\main.exe", 50, window: true);
+        _w.Process(@"C:\Bg\small.exe", 10);
+        _w.Process(@"C:\Bg\big.exe", 80);
+        var stat = Scan();
+
+        var usage = ProcessAttribution.Measure(stat.Apps, stat.Items, _w.Processes.Snapshot(), 1).Apps.ToDictionary(u => u.Name);
+
+        Assert.Equal(@"C:\Ui\main.exe", usage["Ui"].IconImage, ignoreCase: true);
+        Assert.Equal(@"C:\Bg\big.exe", usage["Bg"].IconImage, ignoreCase: true);
+        Assert.DoesNotContain("IconImage", System.Text.Json.JsonSerializer.Serialize(usage["Ui"]), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Memoire_d_un_service_mesuree_en_session_0_sur_son_binaire()
     {
         _w.Service("Indexer", "\"C:\\Program Files\\Indexer\\idx.exe\" -service");
@@ -436,6 +454,27 @@ public sealed partial class AppsModuleTests : IDisposable
         Assert.Contains(inv.StartupItems, i => i.Name == "Chat");
         Assert.Contains(inv.Usage, u => u.Name == "Chat" && u.Background);
         Assert.Contains("Planificateur sans réponse", Assert.Single(inv.Warnings), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Icones_application_active_et_demarrage_jamais_un_hote_de_Windows()
+    {
+        HeavyBackgroundChat();
+        var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        _w.RunEntry("Script", Path.Combine(windows, "System32", "wscript.exe") + @" C:\Users\U\x.vbs");
+        var m = Module();
+        Assert.Null(m.IconPath("app-0000000000000000"));   // avant le premier cycle
+
+        await m.EvaluateAsync(AppsWorld.Context(_time), default);
+
+        var inv = m.LastInventory!;
+        var chat = inv.Usage.Single(u => u.Name == "Chat");
+        Assert.Equal(chat.IconImage, m.IconPath(chat.AppId));
+        Assert.NotNull(chat.IconImage);
+        var chatStartup = inv.StartupItems.Single(i => i.Name == "Chat");
+        Assert.Equal(chatStartup.ExecutablePath, m.IconPath(chatStartup.Id));
+        Assert.Null(m.IconPath(inv.StartupItems.Single(i => i.Name == "Script").Id));
+        Assert.Null(m.IconPath("inconnu"));
     }
 
     [Fact]

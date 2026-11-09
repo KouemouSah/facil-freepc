@@ -16,6 +16,8 @@ internal sealed class FakeDockerHost : IDockerHost
 
     public string? WslExe { get; set; } = @"C:\fake\wsl.exe";
 
+    public string? DesktopExe { get; set; } = @"C:\fake\Docker Desktop.exe";
+
     public bool Running { get; set; }
 
     public string? VhdxPath { get; set; } = Vhdx;

@@ -30,6 +30,10 @@ public sealed record AiAppStatus(
     public double WorkingSetGB => Math.Round(WorkingSetBytes / 1073741824d, 2);
 
     public double ModelsDiskGB => Math.Round(ModelsDiskBytes / 1073741824d, 2);
+
+    /// <summary>Executable principal (source de l'icone), ou null. Non expose.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? IconImage { get; init; }
 }
 
 /// <summary>Acces systeme du module (remplace par un faux dans les tests).</summary>
@@ -41,11 +45,26 @@ public interface IAiPlatform
 
     /// <summary>Somme du working set des processus dont l'image est sous <paramref name="folder"/>, et leur nombre.</summary>
     (int Count, long Bytes) ProcessesUnder(string folder);
+
+    /// <summary>Executables situes directement dans <paramref name="folder"/> (noms de fichier).</summary>
+    IReadOnlyList<string> ExecutablesIn(string folder);
 }
 
 public sealed class WindowsAiPlatform : IAiPlatform
 {
     public bool DirectoryExists(string path) => Directory.Exists(path);
+
+    public IReadOnlyList<string> ExecutablesIn(string folder)
+    {
+        try
+        {
+            return Directory.EnumerateFiles(folder, "*.exe", SearchOption.TopDirectoryOnly).Select(Path.GetFileName).OfType<string>().ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
 
     public long DirectorySize(string path) => SafeCleaner.FolderSize(path).Bytes;
 
@@ -86,7 +105,7 @@ public sealed class WindowsAiPlatform : IAiPlatform
 ///   * LM Studio, GPT4All, Jan : detectes et mesures ; aucune action tant qu'elle n'est pas verifiee en reel ;
 ///   * disque presque plein : proposition d'OUVRIR le dossier des modeles. JAMAIS de suppression de modele.
 /// </summary>
-public sealed class AiModule : IResourceModule, IStatusSource
+public sealed class AiModule : IResourceModule, IStatusSource, IIconSource
 {
     public const string UnloadOllamaModel = "UnloadOllamaModel";
     public const string OpenModelsFolder = "OpenModelsFolder";
@@ -115,6 +134,26 @@ public sealed class AiModule : IResourceModule, IStatusSource
     public IReadOnlyList<AiAppStatus> LastStatus => Volatile.Read(ref _last);
 
     public object? CurrentStatus => LastStatus;
+
+    public string? IconPath(string id) => LastStatus.FirstOrDefault(a => string.Equals(a.Id, id, StringComparison.Ordinal))?.IconImage;
+
+    /// <summary>
+    /// Executable principal d'un dossier d'installation : jamais un desinstalleur ni un programme de mise a jour ;
+    /// celui dont le nom contient celui de l'application (lettres et chiffres) d'abord, sinon le premier par ordre alphabetique.
+    /// </summary>
+    internal static string? MainExecutable(string appName, IReadOnlyList<string> exeNames)
+    {
+        static string Key(string s) => new([.. s.ToLowerInvariant().Where(char.IsLetterOrDigit)]);
+        var candidates = exeNames
+            .Where(n => !n.StartsWith("unins", StringComparison.OrdinalIgnoreCase)
+                     && !n.StartsWith("uninstall", StringComparison.OrdinalIgnoreCase)
+                     && !n.Contains("update", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var key = Key(appName);
+        return candidates.FirstOrDefault(n => Key(Path.GetFileNameWithoutExtension(n)).Contains(key, StringComparison.Ordinal))
+            ?? candidates.FirstOrDefault();
+    }
 
     /// <summary>Emplacements par defaut. Ollama : OLLAMA_MODELS sinon %USERPROFILE%\.ollama\models.</summary>
     public static IReadOnlyList<AiAppDefinition> DefaultApps()
@@ -157,7 +196,12 @@ public sealed class AiModule : IResourceModule, IStatusSource
                 ? serverUp ? $"Serveur actif ({_ollama.Endpoint})" : "Serveur non démarré"
                 : "Mesure seulement : déchargement non vérifié pour cette application";
             statuses.Add(new AiAppStatus(app.Id, app.Name, installDir is not null, count, bytes, modelsDir, disk,
-                isOllama ? loaded ?? [] : [], isOllama ? installedModels?.Count ?? 0 : 0, note));
+                isOllama ? loaded ?? [] : [], isOllama ? installedModels?.Count ?? 0 : 0, note)
+            {
+                IconImage = installDir is not null && MainExecutable(app.Name, _platform.ExecutablesIn(installDir)) is { } exe
+                    ? Path.Combine(installDir, exe)
+                    : null,
+            });
         }
 
         Volatile.Write(ref _last, statuses);

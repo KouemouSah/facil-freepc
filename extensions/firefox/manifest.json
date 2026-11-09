@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Facil FreePC",
-  "version": "0.5.0",
-  "description": "Met en veille les onglets inactifs pour liberer la memoire (jamais l'onglet actif, epingle ou qui joue du son). Une solution de la marque Facil.",
+  "version": "0.6.0",
+  "description": "Met en veille les onglets inactifs pour libérer la mémoire (jamais l'onglet actif, épinglé ou qui joue du son). Une solution de la marque Facil.",
   "author": "Emac SAH",
   "icons": {
     "48": "icons/icon-48.png",
