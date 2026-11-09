@@ -53,32 +53,32 @@ public static class ThresholdCalculator
         var errors = new List<string>();
         if (t.RamAvailCritGB <= 0 || t.RamAvailWarnGB <= 0)
         {
-            errors.Add("Les seuils de RAM disponible doivent etre positifs.");
+            errors.Add("Les seuils de RAM disponible doivent être positifs.");
         }
 
         if (t.RamAvailCritGB >= t.RamAvailWarnGB)
         {
-            errors.Add("RAM : le seuil critique doit etre inferieur au seuil d'alerte.");
+            errors.Add("RAM : le seuil critique doit être inférieur au seuil d'alerte.");
         }
 
         if (t.CommitWarnPct is <= 0 or > 100 || t.CommitCritPct is <= 0 or > 100)
         {
-            errors.Add("Commit : les seuils doivent etre compris entre 0 et 100 %.");
+            errors.Add("Commit : les seuils doivent être compris entre 0 et 100 %.");
         }
 
         if (t.CommitCritPct <= t.CommitWarnPct)
         {
-            errors.Add("Commit : le seuil critique doit etre superieur au seuil d'alerte.");
+            errors.Add("Commit : le seuil critique doit être supérieur au seuil d'alerte.");
         }
 
         if (t.DiskFreeCritGB <= 0 || t.DiskFreeWarnGB <= 0)
         {
-            errors.Add("Les seuils d'espace disque doivent etre positifs.");
+            errors.Add("Les seuils d'espace disque doivent être positifs.");
         }
 
         if (t.DiskFreeCritGB >= t.DiskFreeWarnGB)
         {
-            errors.Add("Disque : le seuil critique doit etre inferieur au seuil d'alerte.");
+            errors.Add("Disque : le seuil critique doit être inférieur au seuil d'alerte.");
         }
 
         return errors;

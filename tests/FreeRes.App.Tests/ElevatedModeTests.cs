@@ -45,11 +45,11 @@ public sealed class ElevatedModeTests : IDisposable
     {
         var path = ElevatedActionProtocol.NewResultPath(AppPaths.Default());
         Assert.Equal(1, ElevatedMode.Run(ElevatedActionProtocol.Encode(ActionRequest.Of("CleanSystemZones")), path, new FixedElevation(false)));
-        Assert.Equal("Processus non eleve", ElevatedActionProtocol.ReadResult(path)!.Message);
+        Assert.Equal("Processus non élevé", ElevatedActionProtocol.ReadResult(path)!.Message);
     }
 
     [Theory]
-    [InlineData("EmptyRecycleBin", "Action non administrateur refusee")]   // moindre privilege
+    [InlineData("EmptyRecycleBin", "Action non administrateur refusée")]   // moindre privilege
     [InlineData("RunScript", "inconnue")]
     public void Action_non_admin_ou_inconnue_refusee_en_mode_eleve(string type, string expected)
     {
@@ -65,7 +65,7 @@ public sealed class ElevatedModeTests : IDisposable
     {
         var path = ElevatedActionProtocol.NewResultPath(AppPaths.Default());
         Assert.Equal(1, ElevatedMode.Run("!!!", path, new FixedElevation(true)));
-        Assert.Equal("Requete d'action illisible", ElevatedActionProtocol.ReadResult(path)!.Message);
+        Assert.Equal("Requête d'action illisible", ElevatedActionProtocol.ReadResult(path)!.Message);
     }
 
     public void Dispose()

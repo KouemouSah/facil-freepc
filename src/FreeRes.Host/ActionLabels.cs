@@ -40,14 +40,14 @@ public static class ActionLabels
     public static string For(string type) => Labels.TryGetValue(type, out var label) ? label : type;
 
     /// <summary>
-    /// Message du journal (« Type : detail » ou « Type (eleve) : detail ») reecrit avec l'intitule.
+    /// Message du journal (« Type : detail » ou « Type (élevé) : detail », « (eleve) » dans les journaux anterieurs a 0.6) reecrit avec l'intitule.
     /// Un message d'une autre forme est rendu tel quel.
     /// </summary>
     public static string Rewrite(string type, string message)
     {
         ArgumentNullException.ThrowIfNull(type);
         ArgumentNullException.ThrowIfNull(message);
-        foreach (var prefix in new[] { type + " (eleve) : ", type + " : " })
+        foreach (var prefix in new[] { type + " (élevé) : ", type + " (eleve) : ", type + " : " })
         {
             if (message.StartsWith(prefix, StringComparison.Ordinal))
             {

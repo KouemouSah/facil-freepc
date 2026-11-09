@@ -31,20 +31,20 @@ public sealed class EscalationNoticeTests
     [Fact]
     public void Une_decision_titre_et_gain()
     {
-        var n = EscalationNotice.For(Report(1), P("Redemarrer Firefox", Severity.Warn, 5.5));
-        Assert.Equal("Une decision vous attend", n.Title);
-        Assert.Equal("Redemarrer Firefox (~5.5 GB). Cliquez pour decider.", n.Text);
-        Assert.Equal("Facil FreePC : 1 decision en attente", n.TrayText);
+        var n = EscalationNotice.For(Report(1), P("Redémarrer Firefox", Severity.Warn, 5.5));
+        Assert.Equal("Une décision vous attend", n.Title);
+        Assert.Equal("Redémarrer Firefox (~5.5 GB). Cliquez pour décider.", n.Text);
+        Assert.Equal("Facil FreePC : 1 décision en attente", n.TrayText);
     }
 
     [Fact]
     public void Plusieurs_decisions_dont_une_critique()
     {
-        var n = EscalationNotice.For(Report(3), P("Decharger le modele", Severity.Crit));
+        var n = EscalationNotice.For(Report(3), P("Décharger le modèle", Severity.Crit));
         Assert.True(n.Critical);
         Assert.Equal("Ressources critiques", n.Title);
-        Assert.Equal("Decharger le modele et 2 autres. Cliquez pour decider.", n.Text);
-        Assert.Equal("Facil FreePC : 3 decisions en attente", n.TrayText);
+        Assert.Equal("Décharger le modèle et 2 autres. Cliquez pour décider.", n.Text);
+        Assert.Equal("Facil FreePC : 3 décisions en attente", n.TrayText);
     }
 
     [Fact]

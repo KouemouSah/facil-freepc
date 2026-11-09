@@ -185,7 +185,7 @@ internal static partial class StateApi
         }
     }
 
-    private static IResult NotStarted() => Results.Problem("Moteur non demarre", statusCode: StatusCodes.Status503ServiceUnavailable);
+    private static IResult NotStarted() => Results.Problem("Moteur non démarré", statusCode: StatusCodes.Status503ServiceUnavailable);
 
     /// <summary>Ce que l'utilisateur doit retrouver : actions, decisions, nouvelles propositions, erreurs.</summary>
     internal static bool IsHistory(LogEntry e) =>

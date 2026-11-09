@@ -34,7 +34,7 @@ internal sealed class MainForm : Form
 
     /// <summary>
     /// Taille confortable de 1280x800 unites LOGIQUES (multipliees par l'echelle d'affichage), sans jamais
-    /// depasser 92 % de la zone utile (en pixels physiques, l'application etant « PerMonitorV2 »).
+    /// dépassér 92 % de la zone utile (en pixels physiques, l'application etant « PerMonitorV2 »).
     /// Constate sur un portable a 150 % : zone utile 1920x1008 px -> 1766x927 px (1177x618 logiques).
     /// </summary>
     internal static Size FitToScreen(Rectangle workingArea, double scale)

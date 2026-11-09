@@ -100,12 +100,12 @@ public sealed class OllamaClientTests
     public async Task Adresse_hors_de_cette_machine_refusee_aucune_requete(string host)
     {
         Assert.Null(HttpOllamaClient.ResolveEndpoint(host));
-        var http = new FakeHttp(_ => throw new InvalidOperationException("aucune requete ne doit partir"));
+        var http = new FakeHttp(_ => throw new InvalidOperationException("aucune requête ne doit partir"));
         using var client = new HttpOllamaClient(host, http);
         Assert.Null(await client.LoadedAsync(default));
         Assert.False(await client.UnloadAsync("x", default));
         Assert.Empty(http.Requests);
-        Assert.Contains("ignore", client.Endpoint, StringComparison.Ordinal);
+        Assert.Contains("ignoré", client.Endpoint, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -225,8 +225,8 @@ public sealed class AiModuleTests : IDisposable
         Assert.Equal(3, st.ProcessCount);
         Assert.Equal(5, st.WorkingSetGB);
         Assert.Equal(9, st.ModelsDiskGB);
-        Assert.Contains("non verifie", st.Note, StringComparison.Ordinal);
-        Assert.Empty(eval.Proposals);   // pression memoire, mais aucune action LM Studio non verifiee
+        Assert.Contains("non vérifié", st.Note, StringComparison.Ordinal);
+        Assert.Empty(eval.Proposals);   // pression memoire, mais aucune action LM Studio non vérifiée
     }
 
     [Fact]
@@ -269,8 +269,8 @@ public sealed class AiModuleTests : IDisposable
         Assert.Equal(AiModule.UnloadOllamaModel, first.Action.Type);
         Assert.Equal("llama3.2:3b", first.Action.Parameters["model"]);
         Assert.Equal(3.2, first.EstGainGB);
-        Assert.Contains("1.2 GB en memoire graphique", first.Detail, StringComparison.Ordinal);
-        Assert.Contains("n'est pas supprime", first.Detail, StringComparison.Ordinal);
+        Assert.Contains("1.2 GB en mémoire graphique", first.Detail, StringComparison.Ordinal);
+        Assert.Contains("n'est pas supprimé", first.Detail, StringComparison.Ordinal);
         Assert.StartsWith("ai-ollama-unload-nomic-embed-latest-", eval.Proposals[1].Id, StringComparison.Ordinal);
     }
 
@@ -334,7 +334,7 @@ public sealed class AiModuleTests : IDisposable
         var outcome = await c.Resolve(Unload("llama3.2:3b")).Execute(Unload("llama3.2:3b"), false, default);
 
         Assert.True(outcome.Ok, outcome.Message);
-        Assert.Contains("3.2 GB liberes", outcome.Message, StringComparison.Ordinal);
+        Assert.Contains("3.2 GB libérés", outcome.Message, StringComparison.Ordinal);
         Assert.Equal(["llama3.2:3b"], _ollama.Unloads);
     }
 
@@ -355,7 +355,7 @@ public sealed class AiModuleTests : IDisposable
         var c = Catalog(Module());
         var outcome = await c.Resolve(Unload("llama3.2:3b")).Execute(Unload("llama3.2:3b"), false, default);
         Assert.True(outcome.Ok);
-        Assert.Contains("deja plus charge", outcome.Message, StringComparison.Ordinal);
+        Assert.Contains("déjà plus chargé", outcome.Message, StringComparison.Ordinal);
         Assert.Empty(_ollama.Unloads);
 
         _ollama.Loaded = null;
@@ -372,13 +372,13 @@ public sealed class AiModuleTests : IDisposable
         var c = Catalog(Module());
         var refused = await c.Resolve(Unload("m")).Execute(Unload("m"), false, default);
         Assert.False(refused.Ok);
-        Assert.Contains("refuse", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("refusé", refused.Message, StringComparison.Ordinal);
 
         _ollama.UnloadAccepted = true;
         _ollama.UnloadIgnored = true;
         var still = await c.Resolve(Unload("m")).Execute(Unload("m"), false, default);
         Assert.False(still.Ok);
-        Assert.Contains("toujours charge", still.Message, StringComparison.Ordinal);
+        Assert.Contains("toujours chargé", still.Message, StringComparison.Ordinal);
     }
 
     [Fact]

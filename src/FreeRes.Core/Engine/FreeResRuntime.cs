@@ -72,7 +72,7 @@ public sealed class FreeResRuntime : IDisposable
         if (thresholdErrors.Count > 0)
         {
             // Seuils personnalises incoherents : on revient aux seuils calcules pour la machine.
-            errors.AddRange(thresholdErrors.Select(e => e + " Seuils calcules pour la machine appliques."));
+            errors.AddRange(thresholdErrors.Select(e => e + " Seuils calculés pour la machine appliqués."));
             thresholds = ThresholdCalculator.FromProfile(profile);
         }
 
@@ -92,7 +92,7 @@ public sealed class FreeResRuntime : IDisposable
             var dispatcher = new ActionDispatcher(catalog, elevation ?? new WindowsElevation(), WindowsSystemProbe.SystemDriveFreeGB, log, elevatedRunner);
             var engine = new MonitorEngine(probe, profile, thresholds, settings, setup.Modules, queue, dispatcher, db, log, time);
             // Journal en format invariant (separateur decimal « . ») : homogene et exploitable par des outils.
-            log.Write(LogLevel.Info, "runtime", string.Create(CultureInfo.InvariantCulture, $"Demarrage {AppInfo.Name} {AppInfo.Version} sur {profile.Manufacturer} {profile.Model}, {profile.OsName} build {profile.OsBuild}, {profile.RamTotalGB} GB RAM"));
+            log.Write(LogLevel.Info, "runtime", string.Create(CultureInfo.InvariantCulture, $"Démarrage {AppInfo.Name} {AppInfo.Version} sur {profile.Manufacturer} {profile.Model}, {profile.OsName} build {profile.OsBuild}, {profile.RamTotalGB} GB RAM"));
             return new FreeResRuntime(paths, log, db, catalog, engine, errors, time);
         }
         catch

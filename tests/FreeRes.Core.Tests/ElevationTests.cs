@@ -16,7 +16,7 @@ internal sealed class FakeElevatedRunner : IElevatedRunner
         Requests.Add(request);
         return Task.FromResult(UserCancels
             ? new ActionResult(request.Type, false, $"{MonitorEngine.ElevationCancelledPrefix} par l'utilisateur", 0, false)
-            : new ActionResult(request.Type, true, "fait en eleve", 1.5, false));
+            : new ActionResult(request.Type, true, "fait en élevé", 1.5, false));
     }
 }
 

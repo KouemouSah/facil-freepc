@@ -11,7 +11,7 @@ public enum BrowserEngine
 /// de toutes les fenetres) a ete VERIFIE en reel pour ce navigateur ; sinon il est refuse.
 /// Verifications du 2026-11-09 (profils jetables) : Chrome et Edge = Restart Manager sur le processus principal +
 /// relance --restore-last-session (un seul profil actif) ; Firefox = Ctrl+Maj+Q + restauration de session.
-/// Brave, Opera, Vivaldi : non verifies.
+/// Brave, Opera, Vivaldi : non vérifiés.
 /// </summary>
 public sealed record BrowserDefinition(
     string Id,

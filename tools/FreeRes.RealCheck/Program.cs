@@ -23,7 +23,7 @@ namespace FreeRes.RealCheck;
 ///   process-stop               StopAppProcesses sur une application de test (copie de ping.exe), temoin epargne
 ///   service-manual &lt;nom&gt;      SetServiceManual reel puis restauration du type de demarrage d'origine (admin)
 ///   docker-cycle               Docker demarre : fstrim + mesure reels par le module
-///   docker-compact             Docker arrete : compactage reel du VHDX par diskpart (admin)
+///   docker-compact             Docker arrêté : compactage reel du VHDX par diskpart (admin)
 ///   browsers / browser-restart &lt;id&gt;  etat des navigateurs / redemarrage reel (accord prealable)
 ///   ai / ai-unload &lt;modele&gt;   applications d'IA (lecture seule) / dechargement reel d'un modele Ollama
 /// </summary>
@@ -35,7 +35,7 @@ internal static class Program
     {
         if (args.Length == 0)
         {
-            Console.WriteLine("Commandes : inventory | startup-toggle <id> | process-stop | service-manual <nom> | docker-cycle | docker-compact | browsers | browser-restart <id> | ai | ai-unload <modele>");
+            Console.WriteLine("Commandes : inventory | startup-toggle <id> | process-stop | service-manual <nom> | docker-cycle | docker-compact | browsers | browser-restart <id> | ai | ai-unload <modèle>");
             return 2;
         }
 
@@ -82,8 +82,8 @@ internal static class Program
                 foreach (var b in browsers.LastStatus)
                 {
                     Console.WriteLine($"{b.Name,-28} lance={b.Running,-5} proc={b.ProcessCount,-3} principaux={b.MainProcessCount} {b.WorkingSetGB,5} GB uptime={b.UptimeHours?.ToString(CultureInfo.InvariantCulture) ?? "-"} h");
-                    Console.WriteLine($"    economiseur : {b.MemorySaverNote} ; profils actifs : {b.ActiveProfiles} ({b.ActiveProfile ?? "-"}) ; extension : {b.ExtensionInstalled?.ToString() ?? "-"}");
-                    Console.WriteLine($"    redemarrage : {b.RestartNote}");
+                    Console.WriteLine($"    économiseur : {b.MemorySaverNote} ; profils actifs : {b.ActiveProfiles} ({b.ActiveProfile ?? "-"}) ; extension : {b.ExtensionInstalled?.ToString() ?? "-"}");
+                    Console.WriteLine($"    redémarrage : {b.RestartNote}");
                 }
 
                 Console.WriteLine($"Propositions : {string.Join(" | ", eval.Proposals.Select(p => $"{p.Id} ({p.Severity})"))}");
@@ -99,7 +99,7 @@ internal static class Program
                 var outcome = await Run(FreeRes.Modules.Browsers.BrowsersModule.RestartBrowser, ("browser", args[1]));
                 await Task.Delay(15000);
                 var after = browsers.Inspect().SingleOrDefault(b => b.Id == args[1]);
-                Console.WriteLine($"Apres 15 s : lance={after?.Running} {after?.WorkingSetGB} GB, {after?.ProcessCount} processus");
+                Console.WriteLine($"Après 15 s : lance={after?.Running} {after?.WorkingSetGB} GB, {after?.ProcessCount} processus");
                 return outcome.Ok && after?.Running == true ? 0 : 1;
             }
 
@@ -110,15 +110,15 @@ internal static class Program
                 var eval = await ai.EvaluateAsync(Context(), CancellationToken.None);
                 if (ai.LastStatus.Count == 0)
                 {
-                    Console.WriteLine("Aucune application d'IA locale detectee (Ollama, LM Studio, GPT4All, Jan) et aucun serveur Ollama en boucle locale.");
+                    Console.WriteLine("Aucune application d'IA locale détectée (Ollama, LM Studio, GPT4All, Jan) et aucun serveur Ollama en boucle locale.");
                 }
 
                 foreach (var a in ai.LastStatus)
                 {
-                    Console.WriteLine($"{a.Name,-10} installe={a.Installed,-5} proc={a.ProcessCount,-3} {a.WorkingSetGB,5} GB ; modeles {a.ModelsDiskGB} GB ({a.ModelsDir ?? "-"}) ; installes={a.InstalledModelCount} ; {a.Note}");
+                    Console.WriteLine($"{a.Name,-10} installe={a.Installed,-5} proc={a.ProcessCount,-3} {a.WorkingSetGB,5} GB ; modèles {a.ModelsDiskGB} GB ({a.ModelsDir ?? "-"}) ; installes={a.InstalledModelCount} ; {a.Note}");
                     foreach (var m in a.LoadedModels)
                     {
-                        Console.WriteLine($"    charge : {m.Name} {Math.Round(m.SizeBytes / 1073741824d, 2)} GB (graphique {Math.Round(m.VramBytes / 1073741824d, 2)} GB) expire {m.ExpiresAt?.ToString("u", CultureInfo.InvariantCulture) ?? "-"}");
+                        Console.WriteLine($"    chargé : {m.Name} {Math.Round(m.SizeBytes / 1073741824d, 2)} GB (graphique {Math.Round(m.VramBytes / 1073741824d, 2)} GB) expire {m.ExpiresAt?.ToString("u", CultureInfo.InvariantCulture) ?? "-"}");
                     }
                 }
 
@@ -127,7 +127,7 @@ internal static class Program
             }
 
             case "ai-unload" when args.Length == 2:
-                // REEL : decharge un modele Ollama charge (il se rechargera a la prochaine demande) ; l'action verifie elle-meme le resultat.
+                // REEL : decharge un modele Ollama charge (il se rechargera à la prochaine demande) ; l'action verifie elle-meme le resultat.
                 return (await Run(FreeRes.Modules.Ai.AiModule.UnloadOllamaModel, ("model", args[1]))).Ok ? 0 : 1;
 
             case "process-stop":
@@ -150,7 +150,7 @@ internal static class Program
 
     private static void PrintInventory(AppsInventory inv)
     {
-        Console.WriteLine($"Applications : {inv.Apps.Count} ; elements de demarrage : {inv.StartupItems.Count} ; avertissements : {string.Join(" | ", inv.Warnings)}");
+        Console.WriteLine($"Applications : {inv.Apps.Count} ; éléments de démarrage : {inv.StartupItems.Count} ; avertissements : {string.Join(" | ", inv.Warnings)}");
         foreach (var s in inv.StartupItems.OrderBy(s => s.Kind).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
         {
             Console.WriteLine($"  {s.Id,-28} {s.Kind,-14} {s.Scope,-8} {(s.Enabled ? "actif " : "inactif")} {s.Name,-40} protection={s.Protection ?? "-"}");
@@ -158,7 +158,7 @@ internal static class Program
 
         foreach (var u in inv.Usage.OrderByDescending(u => u.WorkingSetBytes).Take(8))
         {
-            Console.WriteLine($"  usage {u.Name,-40} {u.WorkingSetGB,6} GB  {u.ProcessCount} proc, {u.WindowedProcessCount} avec fenetre{(u.Background ? "  [arriere-plan]" : string.Empty)}");
+            Console.WriteLine($"  usage {u.Name,-40} {u.WorkingSetGB,6} GB  {u.ProcessCount} proc, {u.WindowedProcessCount} avec fenêtre{(u.Background ? "  [arrière-plan]" : string.Empty)}");
         }
     }
 
@@ -167,15 +167,15 @@ internal static class Program
     private static async Task<int> StartupToggle(AppsModule apps, Func<EngineContext> ctx, Func<string, (string, string)[], Task<ActionOutcome>> run, string id)
     {
         await apps.EvaluateAsync(ctx(), CancellationToken.None);
-        var item = apps.LastInventory!.StartupItems.SingleOrDefault(i => i.Id == id) ?? throw new InvalidOperationException($"Element {id} introuvable");
+        var item = apps.LastInventory!.StartupItems.SingleOrDefault(i => i.Id == id) ?? throw new InvalidOperationException($"Élément {id} introuvable");
         if (item.Scope != AppScope.User || item.ApprovedSubKey is null || item.Protection is not null || !item.Enabled)
         {
-            throw new InvalidOperationException("Choisir un element UTILISATEUR, actif, non protege, de type Run ou dossier Demarrage");
+            throw new InvalidOperationException("Choisir un élément UTILISATEUR, actif, non protégé, de type Run ou dossier Démarrage");
         }
 
         var key = $@"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\{item.ApprovedSubKey}";
         var original = Registry.CurrentUser.OpenSubKey(key)?.GetValue(item.Name) as byte[];
-        Console.WriteLine($"Element : {item.Name} ({item.Kind}) ; StartupApproved d'origine : {Hex(original)}");
+        Console.WriteLine($"Élément : {item.Name} ({item.Kind}) ; StartupApproved d'origine : {Hex(original)}");
         var ok = true;
         try
         {
@@ -183,18 +183,18 @@ internal static class Program
             var disabled = Registry.CurrentUser.OpenSubKey(key)?.GetValue(item.Name) as byte[];
             await apps.EvaluateAsync(ctx(), CancellationToken.None);
             var seenDisabled = apps.LastInventory!.StartupItems.Single(i => i.Id == id).Enabled;
-            Console.WriteLine($"  apres desactivation : {Hex(disabled)} ; octet0 impair={disabled is { Length: > 0 } && (disabled[0] & 1) == 1} ; inventaire actif={seenDisabled}");
+            Console.WriteLine($"  après désactivation : {Hex(disabled)} ; octet0 impair={disabled is { Length: > 0 } && (disabled[0] & 1) == 1} ; inventaire actif={seenDisabled}");
             ok &= disabled is { Length: 12 } && (disabled[0] & 1) == 1 && !seenDisabled;
 
             ok &= (await run(AppsModule.EnableStartupItem, [("id", id)])).Ok;
             var enabled = Registry.CurrentUser.OpenSubKey(key)?.GetValue(item.Name) as byte[];
             await apps.EvaluateAsync(ctx(), CancellationToken.None);
             var seenEnabled = apps.LastInventory!.StartupItems.Single(i => i.Id == id).Enabled;
-            Console.WriteLine($"  apres reactivation  : {Hex(enabled)} ; inventaire actif={seenEnabled}");
+            Console.WriteLine($"  après réactivation  : {Hex(enabled)} ; inventaire actif={seenEnabled}");
             ok &= enabled is { Length: > 0 } && (enabled[0] & 1) == 0 && seenEnabled;
 
             using var run0 = Registry.CurrentUser.OpenSubKey(item.Kind == StartupKind.Run ? @"Software\Microsoft\Windows\CurrentVersion\Run" : key);
-            Console.WriteLine($"  entree d'origine toujours presente : {item.Kind != StartupKind.Run || run0?.GetValue(item.Name) is not null}");
+            Console.WriteLine($"  entrée d'origine toujours présente : {item.Kind != StartupKind.Run || run0?.GetValue(item.Name) is not null}");
         }
         finally
         {
@@ -209,14 +209,14 @@ internal static class Program
                 k.SetValue(item.Name, original, RegistryValueKind.Binary);
             }
 
-            Console.WriteLine($"  restaure : {Hex(Registry.CurrentUser.OpenSubKey(key)?.GetValue(item.Name) as byte[])}");
+            Console.WriteLine($"  restauré : {Hex(Registry.CurrentUser.OpenSubKey(key)?.GetValue(item.Name) as byte[])}");
         }
 
-        Console.WriteLine(ok ? "RESULTAT : OK" : "RESULTAT : ECHEC");
+        Console.WriteLine(ok ? "RÉSULTAT : OK" : "RÉSULTAT : ÉCHEC");
         return ok ? 0 : 1;
     }
 
-    // ---------------------------------------------------------------- arret des processus d'arriere-plan
+    // ---------------------------------------------------------------- arret des processus d'arrière-plan
 
     private static async Task<int> ProcessStop(Func<EngineContext> ctx, Func<string, (string, string)[], Task<ActionOutcome>> run, ModuleServices services)
     {
@@ -242,12 +242,12 @@ internal static class Program
             var apps = new AppsModule(services);   // nouvel inventaire incluant l'entree Run de test
             await apps.EvaluateAsync(ctx(), CancellationToken.None);
             var app = apps.LastInventory!.Apps.SingleOrDefault(a => a.Folder is not null && string.Equals(a.Folder.TrimEnd('\\'), appDir, StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException("Application de test non deduite de l'entree Run");
-            Console.WriteLine($"Application de test : {app.Id} ({app.Folder}) ; cible pid {target.Id}, temoin pid {witness.Id}");
+                ?? throw new InvalidOperationException("Application de test non déduite de l'entrée Run");
+            Console.WriteLine($"Application de test : {app.Id} ({app.Folder}) ; cible pid {target.Id}, témoin pid {witness.Id}");
 
             ok &= (await run(AppsModule.StopAppProcesses, [("appId", app.Id)])).Ok;
             await Task.Delay(1000);
-            Console.WriteLine($"  cible arretee : {target.HasExited} ; temoin intact : {!witness.HasExited}");
+            Console.WriteLine($"  cible arrêtée : {target.HasExited} ; témoin intact : {!witness.HasExited}");
             ok &= target.HasExited && !witness.HasExited;
         }
         finally
@@ -261,10 +261,10 @@ internal static class Program
 
             Directory.Delete(appDir, recursive: true);
             Directory.Delete(otherDir, recursive: true);
-            Console.WriteLine($"  nettoye : entree Run retiree={Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run")?.GetValue(RunName) is null}");
+            Console.WriteLine($"  nettoyé : entrée Run retirée={Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run")?.GetValue(RunName) is null}");
         }
 
-        Console.WriteLine(ok ? "RESULTAT : OK" : "RESULTAT : ECHEC");
+        Console.WriteLine(ok ? "RÉSULTAT : OK" : "RÉSULTAT : ÉCHEC");
         return ok ? 0 : 1;
     }
 
@@ -291,7 +291,7 @@ internal static class Program
             ok &= (await run("SetServiceManual", [("service", name)])).Ok;
             using var after = Registry.LocalMachine.OpenSubKey(keyPath);
             var now = Convert.ToInt32(after!.GetValue("Start"), CultureInfo.InvariantCulture);
-            Console.WriteLine($"  apres action : Start={now} (3 = manuel)");
+            Console.WriteLine($"  après action : Start={now} (3 = manuel)");
             ok &= now == 3;
         }
         finally
@@ -299,10 +299,10 @@ internal static class Program
             var mode = start switch { 2 when delayed == 1 => "delayed-auto", 2 => "auto", 3 => "demand", 4 => "disabled", _ => "auto" };
             var r = await new ProcessRunner().RunAsync(Path.Combine(Environment.SystemDirectory, "sc.exe"), ["config", name, "start=", mode], TimeSpan.FromSeconds(30), CancellationToken.None);
             using var back = Registry.LocalMachine.OpenSubKey(keyPath);
-            Console.WriteLine($"  restaure ({mode}, code {r.ExitCode}) : Start={back!.GetValue("Start")} DelayedAutostart={back.GetValue("DelayedAutostart") ?? 0}");
+            Console.WriteLine($"  restauré ({mode}, code {r.ExitCode}) : Start={back!.GetValue("Start")} DelayedAutostart={back.GetValue("DelayedAutostart") ?? 0}");
         }
 
-        Console.WriteLine(ok ? "RESULTAT : OK" : "RESULTAT : ECHEC");
+        Console.WriteLine(ok ? "RÉSULTAT : OK" : "RÉSULTAT : ÉCHEC");
         return ok ? 0 : 1;
     }
 

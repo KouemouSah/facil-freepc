@@ -39,14 +39,14 @@ public sealed class ActionDispatcher(ActionCatalog catalog, IElevation elevation
         {
             if (!allowElevation || elevatedRunner is null)
             {
-                throw new ActionRejectedException($"{request.Type} necessite des droits administrateur");
+                throw new ActionRejectedException($"{request.Type} nécessite des droits administrateur");
             }
 
             var elevated = await elevatedRunner.RunAsync(request, cancellationToken).ConfigureAwait(false);
             log.Write(
                 elevated.Ok ? LogLevel.Action : LogLevel.Error,
                 "action",
-                $"{request.Type} (eleve) : {elevated.Message}",
+                $"{request.Type} (élevé) : {elevated.Message}",
                 new Dictionary<string, object?> { ["type"] = request.Type, ["diskDeltaGB"] = elevated.DiskDeltaGB, ["elevated"] = true });
             return elevated;
         }

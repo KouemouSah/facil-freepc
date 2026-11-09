@@ -19,7 +19,7 @@ public interface IProcessRunner
 
 /// <summary>
 /// Implementation reelle. Arguments passes un par un (ArgumentList) : aucune concatenation de ligne de
-/// commande, donc aucune injection possible par un parametre. Processus tue si le delai est depasse.
+/// commande, donc aucune injection possible par un parametre. Processus tue si le delai est dépassé.
 /// </summary>
 public sealed class ProcessRunner : IProcessRunner
 {
@@ -82,7 +82,7 @@ public sealed class ProcessRunner : IProcessRunner
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            return new ProcessResult(-1, string.Empty, $"Delai depasse ({timeout})", true);
+            return new ProcessResult(-1, string.Empty, $"Délai dépassé ({timeout})", true);
         }
 
         return new ProcessResult(process.ExitCode, Clean(await stdout.ConfigureAwait(false)), Clean(await stderr.ConfigureAwait(false)), false);

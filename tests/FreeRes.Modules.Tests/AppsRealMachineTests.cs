@@ -25,7 +25,7 @@ public sealed partial class AppsRealMachineTests(ITestOutputHelper output)
         var (usage, services) = ProcessAttribution.Measure(stat.Apps, stat.Items, snapshot, processes.CurrentSessionId);
         sw.Stop();
 
-        output.WriteLine($"{stat.Apps.Count} applications, {stat.Items.Count} elements de demarrage, {snapshot.Count} processus, {usage.Count} applications actives, {services.Count} services mesures en {sw.Elapsed}");
+        output.WriteLine($"{stat.Apps.Count} applications, {stat.Items.Count} éléments de démarrage, {snapshot.Count} processus, {usage.Count} applications actives, {services.Count} services mesures en {sw.Elapsed}");
         foreach (var i in stat.Items)
         {
             output.WriteLine($"  {i.Kind,-14} {(i.Enabled ? "on " : "off")} {i.Scope,-7} {i.Name} -> {i.ExecutablePath} [{i.Protection ?? "-"}]");

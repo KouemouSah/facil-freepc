@@ -71,13 +71,13 @@ public sealed class DiskModule : IResourceModule
             var npm = CachedSize("npm", () => SafeCleaner.FolderSize(SafeCleaner.Expand(_options.NpmCachePath)).Bytes);
             if (npm >= _options.NpmCacheProposeGB)
             {
-                proposals.Add(new Proposal("disk-npm-cache", "Vider le cache npm", "Re-telecharge a la demande lors des prochains npm install.", npm, severity, ActionRequest.Of(NpmCacheClean)));
+                proposals.Add(new Proposal("disk-npm-cache", "Vider le cache npm", "Re-téléchargé à la demande lors des prochains npm install.", npm, severity, ActionRequest.Of(NpmCacheClean)));
             }
 
             var bin = CachedSize("recycle", _recycleBin.SizeBytes);
             if (bin >= _options.RecycleBinProposeGB)
             {
-                proposals.Add(new Proposal("disk-recycle-bin", "Vider la corbeille", "Suppression definitive du contenu de la corbeille.", bin, severity, ActionRequest.Of(EmptyRecycleBin)));
+                proposals.Add(new Proposal("disk-recycle-bin", "Vider la corbeille", "Suppression définitive du contenu de la corbeille.", bin, severity, ActionRequest.Of(EmptyRecycleBin)));
             }
 
             var system = CachedSize("system-zones", () => _options.Rules.Where(r => r.RequiresAdmin)
@@ -86,7 +86,7 @@ public sealed class DiskModule : IResourceModule
             {
                 proposals.Add(new Proposal(
                     "disk-system-zones",
-                    "Nettoyer les fichiers temporaires du systeme",
+                    "Nettoyer les fichiers temporaires du système",
                     "Temporaires de Windows, rapports d'erreurs et journaux de maintenance anciens. Demande l'autorisation administrateur.",
                     system,
                     severity,
@@ -103,7 +103,7 @@ public sealed class DiskModule : IResourceModule
         catalog.Register(new ActionDefinition(
             CleanUserZone,
             RequiresAdmin: false,
-            p => p.TryGetValue("rule", out var id) && _options.Rules.Any(r => r.Id == id && !r.RequiresAdmin) ? null : "regle inconnue ou reservee a l'administrateur",
+            p => p.TryGetValue("rule", out var id) && _options.Rules.Any(r => r.Id == id && !r.RequiresAdmin) ? null : "règle inconnue ou réservée à l'administrateur",
             (req, dryRun, _) =>
             {
                 var rule = _options.Rules.Single(r => r.Id == req.Parameters["rule"]);
@@ -125,7 +125,8 @@ public sealed class DiskModule : IResourceModule
                     details.Add(string.Create(CultureInfo.InvariantCulture, $"{rule.Id} {r.FreedGB} GB"));
                 }
 
-                return Task.FromResult(new ActionOutcome(true, string.Create(CultureInfo.InvariantCulture, $"{Math.Round(freed / 1073741824d, 2)} GB ({string.Join(", ", details)})")));
+                var summary = string.Join(", ", details);
+                return Task.FromResult(new ActionOutcome(true, string.Create(CultureInfo.InvariantCulture, $"{Math.Round(freed / 1073741824d, 2)} GB ({summary})")));
             }));
 
         catalog.Register(new ActionDefinition(
@@ -150,11 +151,11 @@ public sealed class DiskModule : IResourceModule
             }));
     }
 
-    internal static string? NoParameters(IReadOnlyDictionary<string, string> p) => p.Count == 0 ? null : "aucun parametre attendu";
+    internal static string? NoParameters(IReadOnlyDictionary<string, string> p) => p.Count == 0 ? null : "aucun paramètre attendu";
 
     // Le repartiteur journalise deja chaque action (avec son gain disque) : pas de double ecriture ici.
     private static ActionOutcome Outcome(string id, CleanResult r) =>
-        new(true, string.Create(CultureInfo.InvariantCulture, $"{id} : {r.FreedGB} GB, {r.Files} fichiers, {r.Dirs} dossiers, {r.Skipped} ignores"), Changed: r.Files + r.Dirs > 0);
+        new(true, string.Create(CultureInfo.InvariantCulture, $"{id} : {r.FreedGB} GB, {r.Files} fichiers, {r.Dirs} dossiers, {r.Skipped} ignorés"), Changed: r.Files + r.Dirs > 0);
 
     private double CachedSize(string key, Func<long> measure)
     {

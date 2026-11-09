@@ -43,7 +43,7 @@ public sealed class HttpOllamaClient : IOllamaClient, IDisposable
     public HttpOllamaClient(string? ollamaHost = null, HttpMessageHandler? handler = null)
     {
         var uri = ResolveEndpoint(ollamaHost);
-        Endpoint = uri?.ToString() ?? $"OLLAMA_HOST ignore (hors de cette machine) : {ollamaHost}";
+        Endpoint = uri?.ToString() ?? $"OLLAMA_HOST ignoré (hors de cette machine) : {ollamaHost}";
         if (uri is not null)
         {
             _http = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
@@ -143,7 +143,7 @@ public sealed class HttpOllamaClient : IOllamaClient, IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException)
         {
-            return null;   // pas de serveur, delai depasse ou reponse inattendue : Ollama considere absent
+            return null;   // pas de serveur, delai dépassé ou reponse inattendue : Ollama considere absent
         }
     }
 

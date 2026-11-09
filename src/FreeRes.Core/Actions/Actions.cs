@@ -57,7 +57,7 @@ public sealed partial class ActionCatalog
 
         if (!_definitions.TryAdd(definition.Type, definition))
         {
-            throw new InvalidOperationException($"Type d'action deja enregistre : {definition.Type}");
+            throw new InvalidOperationException($"Type d'action déjà enregistré : {definition.Type}");
         }
     }
 
@@ -71,7 +71,7 @@ public sealed partial class ActionCatalog
         ArgumentNullException.ThrowIfNull(request);
         if (!_definitions.TryGetValue(request.Type, out var def))
         {
-            throw new ActionRejectedException($"Action inconnue ou non autorisee : '{request.Type}'");
+            throw new ActionRejectedException($"Action inconnue ou non autorisée : '{request.Type}'");
         }
 
         var error = def.ValidateParameters(request.Parameters);

@@ -12,7 +12,7 @@ public sealed record CleanResult(string Path, long FreedBytes, int Files, int Di
 /// Suppression bornee, reprise de Remove-FreeResOlderThan (version PowerShell eprouvee) :
 ///   * uniquement sous une racine de la liste blanche, jamais une racine de lecteur ;
 ///   * ne suit JAMAIS une jonction ou un lien (protege les donnees hors perimetre) ;
-///   * un fichier n'est supprime que si sa creation ET sa modification depassent le seuil (un fichier extrait
+///   * un fichier n'est supprime que si sa creation ET sa modification dépassént le seuil (un fichier extrait
 ///     recemment d'une archive garde une vieille date de modification) ;
 ///   * fichiers verrouilles ignores ; mode « dirPattern » : dossiers de 1er niveau correspondant au motif.
 /// </summary>
@@ -54,7 +54,7 @@ public sealed class SafeCleaner(IReadOnlyList<string> allowedRoots, TimeProvider
         var root = Normalize(path);
         if (!IsSafe(root))
         {
-            throw new InvalidOperationException($"Chemin hors liste blanche, refuse : {Expand(path)}");
+            throw new InvalidOperationException($"Chemin hors liste blanche, refusé : {Expand(path)}");
         }
 
         var matched = new List<string>();
@@ -67,7 +67,7 @@ public sealed class SafeCleaner(IReadOnlyList<string> allowedRoots, TimeProvider
 
         // Racine resolue PAR HANDLE : toute suppression doit rester sous ce chemin reel (cf. SecureDelete).
         var realRoot = SecureDelete.RealDirectoryPath(root)
-            ?? throw new InvalidOperationException($"Racine inaccessible ou lien (jonction), refusee : {root}");
+            ?? throw new InvalidOperationException($"Racine inaccessible ou lien (jonction), refusée : {root}");
         var cutoff = time.GetLocalNow().LocalDateTime.AddDays(-olderThanDays);
         var exclude = excludeDirs ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var rootInfo = new DirectoryInfo(root);

@@ -49,7 +49,7 @@ public sealed class FreeResDatabase : IStateStore, IDisposable
         if (version > SchemaVersion)
         {
             throw new DatabaseVersionException(
-                $"La base {Path} a ete creee par une version plus recente (schema {version} > {SchemaVersion}). Mettez Facil FreePC a jour.");
+                $"La base {Path} a été créée par une version plus récente (schéma {version} > {SchemaVersion}). Mettez Facil FreePC à jour.");
         }
 
         if (version < 1)

@@ -7,7 +7,7 @@ namespace FreeRes.App;
 
 /// <summary>
 /// Vie de l'application : icone dans la zone de notification. La fenetre est creee a la demande et
-/// detruite a la fermeture (l'application continue en arriere-plan) ; « Quitter » arrete tout.
+/// detruite a la fermeture (l'application continue en arrière-plan) ; « Quitter » arrete tout.
 /// </summary>
 internal sealed class TrayContext : ApplicationContext
 {
@@ -44,7 +44,7 @@ internal sealed class TrayContext : ApplicationContext
         _icon.DoubleClick += (_, _) => ShowWindow();
         _icon.BalloonTipClicked += (_, _) => ShowWindow();
 
-        // Escalade decidee par le moteur (thread d'arriere-plan) -> presentee sur le thread de l'interface.
+        // Escalade decidee par le moteur (thread d'arrière-plan) -> presentee sur le thread de l'interface.
         _engine.CycleCompleted += OnCycleCompleted;
 
         // Signaux d'une autre instance (« afficher ») ou de la desinstallation (« quitter »).

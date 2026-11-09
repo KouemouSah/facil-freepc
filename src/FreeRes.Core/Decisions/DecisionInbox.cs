@@ -59,7 +59,7 @@ public sealed class DecisionInbox(FreeResDatabase db, ActionCatalog catalog, Tim
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         if (kind != DecisionKind.Approved && (duration is null || duration <= TimeSpan.Zero))
         {
-            throw new ArgumentException("Un rejet ou un report exige une duree positive", nameof(duration));
+            throw new ArgumentException("Un rejet ou un report exige une durée positive", nameof(duration));
         }
 
         var now = time.GetLocalNow();
@@ -92,7 +92,7 @@ public sealed class DecisionInbox(FreeResDatabase db, ActionCatalog catalog, Tim
             if (!activeIds.Contains(p.Proposal.Id) && db.RemovePending(p.Proposal.Id))
             {
                 removed++;
-                log.Write(LogLevel.Info, "proposal", $"Proposition retiree (condition disparue) : {p.Proposal.Id}");
+                log.Write(LogLevel.Info, "proposal", $"Proposition retirée (condition disparue) : {p.Proposal.Id}");
             }
         }
 

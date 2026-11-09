@@ -88,7 +88,7 @@ internal static class TestActions
         catalog.Register(new ActionDefinition(
             "TestClean",
             RequiresAdmin: false,
-            p => p.TryGetValue("days", out var d) && !int.TryParse(d, out _) ? "days doit etre un entier" : null,
+            p => p.TryGetValue("days", out var d) && !int.TryParse(d, out _) ? "days doit être un entier" : null,
             (_, dryRun, _) =>
             {
                 if (!dryRun)

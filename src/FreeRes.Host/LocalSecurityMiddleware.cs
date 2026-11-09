@@ -18,7 +18,7 @@ public sealed class LocalSecurityMiddleware(RequestDelegate next, LocalWebHostOp
 
         if (!string.Equals(request.Host.Host, LocalWebHostOptions.LoopbackHost, StringComparison.Ordinal))
         {
-            await Reject(context, StatusCodes.Status400BadRequest, "hote refuse").ConfigureAwait(false);
+            await Reject(context, StatusCodes.Status400BadRequest, "hôte refusé").ConfigureAwait(false);
             return;
         }
 
@@ -30,7 +30,7 @@ public sealed class LocalSecurityMiddleware(RequestDelegate next, LocalWebHostOp
 
         if (!HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method) && !IsSameOrigin(request))
         {
-            await Reject(context, StatusCodes.Status403Forbidden, "origine refusee").ConfigureAwait(false);
+            await Reject(context, StatusCodes.Status403Forbidden, "origine refusée").ConfigureAwait(false);
             return;
         }
 

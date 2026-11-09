@@ -82,7 +82,7 @@ public sealed class WindowsAiPlatform : IAiPlatform
 /// <summary>
 /// Applications d'IA locales :
 ///   * Ollama (natif ou dans Docker, via son API en boucle locale) : modeles charges, memoire, memoire graphique ;
-///     sous tension memoire -> proposition de DECHARGER un modele (il se rechargera a la prochaine demande) ;
+///     sous tension memoire -> proposition de DECHARGER un modele (il se rechargera à la prochaine demande) ;
 ///   * LM Studio, GPT4All, Jan : detectes et mesures ; aucune action tant qu'elle n'est pas verifiee en reel ;
 ///   * disque presque plein : proposition d'OUVRIR le dossier des modeles. JAMAIS de suppression de modele.
 /// </summary>
@@ -154,8 +154,8 @@ public sealed class AiModule : IResourceModule, IStatusSource
             var (count, bytes) = installDir is null ? (0, 0L) : _platform.ProcessesUnder(installDir);
             var disk = modelsDir is null ? 0 : CachedSize(modelsDir);
             var note = isOllama
-                ? serverUp ? $"Serveur actif ({_ollama.Endpoint})" : "Serveur non demarre"
-                : "Mesure seulement : dechargement non verifie pour cette application";
+                ? serverUp ? $"Serveur actif ({_ollama.Endpoint})" : "Serveur non démarré"
+                : "Mesure seulement : déchargement non vérifié pour cette application";
             statuses.Add(new AiAppStatus(app.Id, app.Name, installDir is not null, count, bytes, modelsDir, disk,
                 isOllama ? loaded ?? [] : [], isOllama ? installedModels?.Count ?? 0 : 0, note));
         }
@@ -183,8 +183,8 @@ public sealed class AiModule : IResourceModule, IStatusSource
                     var vram = Math.Round(m.VramBytes / 1073741824d, 2);
                     proposals.Add(new Proposal(
                         "ai-ollama-unload-" + AppIdFragment(m.Name),
-                        string.Create(CultureInfo.InvariantCulture, $"Decharger le modele Ollama Â« {m.Name} Â» ({gb} GB)"),
-                        string.Create(CultureInfo.InvariantCulture, $"{gb} GB charges dont {vram} GB en memoire graphique. Le modele n'est pas supprime : il se rechargera a la prochaine demande (quelques secondes)."),
+                        string.Create(CultureInfo.InvariantCulture, $"Décharger le modèle Ollama Â« {m.Name} Â» ({gb} GB)"),
+                        string.Create(CultureInfo.InvariantCulture, $"{gb} GB chargés dont {vram} GB en mémoire graphique. Le modèle n'est pas supprimé : il se rechargera à la prochaine demande (quelques secondes)."),
                         gb,
                         critical ? Severity.Crit : Severity.Warn,
                         new ActionRequest(UnloadOllamaModel, new Dictionary<string, string> { ["model"] = m.Name })));
@@ -195,8 +195,8 @@ public sealed class AiModule : IResourceModule, IStatusSource
             {
                 proposals.Add(new Proposal(
                     $"ai-{st.Id}-models-disk",
-                    string.Create(CultureInfo.InvariantCulture, $"Les modeles {st.Name} occupent {st.ModelsDiskGB} GB"),
-                    "Le disque systeme est presque plein. FreePC ne supprime JAMAIS de modele : le dossier s'ouvre pour que vous decidiez (ou deplaciez les modeles).",
+                    string.Create(CultureInfo.InvariantCulture, $"Les modèles {st.Name} occupent {st.ModelsDiskGB} GB"),
+                    "Le disque système est presque plein. FreePC ne supprime JAMAIS de modèle : le dossier s'ouvre pour que vous décidiez (ou déplaciez les modèles).",
                     0,
                     Severity.Info,
                     new ActionRequest(OpenModelsFolder, new Dictionary<string, string> { ["app"] = st.Id })));
@@ -231,7 +231,7 @@ public sealed class AiModule : IResourceModule, IStatusSource
     private static string? ValidateModel(IReadOnlyDictionary<string, string> p) =>
         p.Count == 1 && p.TryGetValue("model", out var m) && m.Length is > 0 and <= 200 && !m.Any(char.IsControl)
             ? null
-            : "un seul parametre Â« model Â» (nom de modele) attendu";
+            : "un seul paramètre Â« model Â» (nom de modèle) attendu";
 
     private string? ValidateApp(IReadOnlyDictionary<string, string> p) =>
         p.Count == 1 && p.TryGetValue("app", out var id) && _apps.Any(a => a.Id == id) ? null : "application d'IA inconnue";
@@ -249,24 +249,24 @@ public sealed class AiModule : IResourceModule, IStatusSource
         var target = loaded.FirstOrDefault(m => m.Name == model);
         if (target is null)
         {
-            return new ActionOutcome(true, $"Â« {model} Â» n'est deja plus charge");
+            return new ActionOutcome(true, $"Â« {model} Â» n'est déjà plus chargé");
         }
 
         if (dryRun)
         {
-            return new ActionOutcome(true, $"simulation : dechargement de Â« {model} Â»");
+            return new ActionOutcome(true, $"simulation : déchargement de Â« {model} Â»");
         }
 
         if (!await _ollama.UnloadAsync(model, ct).ConfigureAwait(false))
         {
-            return new ActionOutcome(false, $"Ollama a refuse le dechargement de Â« {model} Â»");
+            return new ActionOutcome(false, $"Ollama a refusé le déchargement de Â« {model} Â»");
         }
 
         var after = await _ollama.LoadedAsync(ct).ConfigureAwait(false);
         var still = after?.Any(m => m.Name == model) ?? false;
         return still
-            ? new ActionOutcome(false, $"Â« {model} Â» est toujours charge (dechargement en cours ou modele en cours d'utilisation)")
-            : new ActionOutcome(true, string.Create(CultureInfo.InvariantCulture, $"Modele Â« {model} Â» decharge ({Math.Round(target.SizeBytes / 1073741824d, 2)} GB liberes)"));
+            ? new ActionOutcome(false, $"Â« {model} Â» est toujours chargé (déchargement en cours ou modèle en cours d'utilisation)")
+            : new ActionOutcome(true, string.Create(CultureInfo.InvariantCulture, $"Modèle Â« {model} Â» déchargé ({Math.Round(target.SizeBytes / 1073741824d, 2)} GB libérés)"));
     }
 
     private ActionOutcome OpenFolder(ActionRequest req, bool dryRun)
@@ -275,7 +275,7 @@ public sealed class AiModule : IResourceModule, IStatusSource
         var dir = app.ModelDirs.Select(Environment.ExpandEnvironmentVariables).FirstOrDefault(_platform.DirectoryExists);
         if (dir is null)
         {
-            return new ActionOutcome(false, $"Dossier des modeles {app.Name} introuvable");
+            return new ActionOutcome(false, $"Dossier des modèles {app.Name} introuvable");
         }
 
         if (dryRun)

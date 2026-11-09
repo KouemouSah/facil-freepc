@@ -84,7 +84,7 @@ public sealed class EventLog(string directory, TimeProvider time)
         }
     }
 
-    /// <summary>Supprime les journaux mensuels dont la derniere ecriture depasse la duree de conservation.</summary>
+    /// <summary>Supprime les journaux mensuels dont la derniere ecriture dépassé la duree de conservation.</summary>
     public int Purge(int keepDays)
     {
         lock (_gate)

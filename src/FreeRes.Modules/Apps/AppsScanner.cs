@@ -60,7 +60,7 @@ internal sealed class AppsScanner(AppsPlatform platform, AppProtection protectio
             }
             catch (Exception ex) when (ex is TimeoutException or InvalidOperationException or UnauthorizedAccessException or System.Runtime.InteropServices.COMException)
             {
-                warnings.Add("Taches planifiees non lues : " + ex.Message);
+                warnings.Add("Tâches planifiées non lues : " + ex.Message);
             }
         }
 
@@ -203,7 +203,7 @@ internal sealed class AppsScanner(AppsPlatform platform, AppProtection protectio
             return "service Windows (binaire sous le dossier Windows)";
         }
 
-        return protection.Check($"{s.DisplayName} ({s.Name})", platform.CompanyOf(s.Executable), s.Executable) is { } p ? "service protege : " + p : null;
+        return protection.Check($"{s.DisplayName} ({s.Name})", platform.CompanyOf(s.Executable), s.Executable) is { } p ? "service protégé : " + p : null;
     }
 
     /// <summary>Services Win32 en demarrage automatique dont le binaire est HORS du dossier Windows.</summary>

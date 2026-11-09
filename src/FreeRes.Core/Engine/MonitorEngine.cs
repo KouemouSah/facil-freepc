@@ -76,7 +76,7 @@ public sealed class MonitorEngine(
     internal const string LastWindowKey = "lastWindowAt";
     internal const string LastToastKey = "lastToastAt";
 
-    /// <summary>Fin de chaque cycle (thread d'arriere-plan) : l'application y applique l'escalade.</summary>
+    /// <summary>Fin de chaque cycle (thread d'arrière-plan) : l'application y applique l'escalade.</summary>
     public event EventHandler<CycleReport>? CycleCompleted;
 
     /// <summary>Modules exposant leur etat a l'interface.</summary>
@@ -133,7 +133,7 @@ public sealed class MonitorEngine(
 #pragma warning restore CA1031
             {
                 errors.Add($"{module.Name} : {ex.Message}");
-                log.Write(LogLevel.Error, module.Name, $"Evaluation en echec : {ex.Message}");
+                log.Write(LogLevel.Error, module.Name, $"Évaluation en échec : {ex.Message}");
                 if (_lastIdsByModule.TryGetValue(module.Name, out var previous))
                 {
                     active.UnionWith(previous);   // on garde ses propositions en l'etat
@@ -156,8 +156,8 @@ public sealed class MonitorEngine(
                 }
                 catch (Exception ex) when (ex is ArgumentException or ActionRejectedException)
                 {
-                    errors.Add($"{module.Name} : proposition refusee ({ex.Message})");
-                    log.Write(LogLevel.Error, module.Name, $"Proposition refusee : {ex.Message}");
+                    errors.Add($"{module.Name} : proposition refusée ({ex.Message})");
+                    log.Write(LogLevel.Error, module.Name, $"Proposition refusée : {ex.Message}");
                 }
             }
 
@@ -174,8 +174,8 @@ public sealed class MonitorEngine(
                 }
                 catch (ActionRejectedException ex)
                 {
-                    errors.Add($"{module.Name} : action automatique refusee ({ex.Message})");
-                    log.Write(LogLevel.Error, module.Name, $"Action automatique refusee : {ex.Message}");
+                    errors.Add($"{module.Name} : action automatique refusée ({ex.Message})");
+                    log.Write(LogLevel.Error, module.Name, $"Action automatique refusée : {ex.Message}");
                 }
             }
         }
@@ -209,7 +209,7 @@ public sealed class MonitorEngine(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            log.Write(LogLevel.Error, "monitor", $"Abonne de fin de cycle en echec : {ex.Message}");
+            log.Write(LogLevel.Error, "monitor", $"Abonné de fin de cycle en échec : {ex.Message}");
         }
 
         return report;
@@ -243,7 +243,7 @@ public sealed class MonitorEngine(
         await _decisionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var pending = queue.Get(id) ?? throw new KeyNotFoundException($"Proposition inconnue ou deja traitee : {id}");
+            var pending = queue.Get(id) ?? throw new KeyNotFoundException($"Proposition inconnue ou déjà traitée : {id}");
             var result = await dispatcher.ExecuteAsync(pending.Proposal.Action, dryRun: false, cancellationToken, allowElevation: true).ConfigureAwait(false);
             if (result.Message.StartsWith(ElevationCancelledPrefix, StringComparison.Ordinal))
             {
@@ -265,7 +265,7 @@ public sealed class MonitorEngine(
     public bool DecisionInProgress => _decisionGate.CurrentCount == 0;
 
     /// <summary>Debut du message rendu quand l'utilisateur refuse la demande UAC.</summary>
-    public const string ElevationCancelledPrefix = "Elevation refusee";
+    public const string ElevationCancelledPrefix = "Élévation refusée";
 
     private void NotifyObservers(ActionRequest request, ActionResult result)
     {
@@ -279,7 +279,7 @@ public sealed class MonitorEngine(
             catch (Exception ex)
 #pragma warning restore CA1031
             {
-                log.Write(LogLevel.Error, "monitor", $"Observateur en echec apres {request.Type} : {ex.Message}");
+                log.Write(LogLevel.Error, "monitor", $"Observateur en échec après {request.Type} : {ex.Message}");
             }
         }
     }
@@ -297,7 +297,7 @@ public sealed class MonitorEngine(
         {
             if (queue.Get(id) is null)
             {
-                throw new KeyNotFoundException($"Proposition inconnue ou deja traitee : {id}");
+                throw new KeyNotFoundException($"Proposition inconnue ou déjà traitée : {id}");
             }
 
             queue.Decide(id, kind, TimeSpan.FromHours(hours));
@@ -324,7 +324,7 @@ public sealed class MonitorEngine(
         db.SetState(LastRetentionKey, FreeResDatabase.Iso(now));
         if (metrics + decisions + logs > 0)
         {
-            log.Write(LogLevel.Info, "retention", $"Retention : {metrics} mesures, {decisions} decisions, {logs} journaux supprimes");
+            log.Write(LogLevel.Info, "retention", $"Retention : {metrics} mesures, {decisions} décisions, {logs} journaux supprimés");
         }
     }
 

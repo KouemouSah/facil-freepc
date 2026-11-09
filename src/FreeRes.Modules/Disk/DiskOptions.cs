@@ -34,14 +34,14 @@ public sealed record DiskOptions(
         [
             // Dossiers « xxxxxxxx.xxx » laisses par les installeurs (Visual Studio Installer : ~140 MB par verification,
             // jamais nettoyes — constate le 2026-11-08). Toutes les heures, au-dela d'un jour.
-            new("installer-leak", "%TEMP%", 1, @"^[a-z0-9]{8}\.[a-z0-9]{3}$", false, 1, "Dossiers temporaires d'installeurs jamais nettoyes"),
+            new("installer-leak", "%TEMP%", 1, @"^[a-z0-9]{8}\.[a-z0-9]{3}$", false, 1, "Dossiers temporaires d'installeurs jamais nettoyés"),
             new("user-temp", "%TEMP%", 7, null, false, 24, "Fichiers temporaires de l'utilisateur"),
             new("crashdumps", @"%LOCALAPPDATA%\CrashDumps", 7, null, false, 24, "Dumps de plantage d'applications"),
             new("wer-user", @"%LOCALAPPDATA%\Microsoft\Windows\WER", 14, null, false, 24, "Rapports d'erreurs de l'utilisateur"),
             new("vscode-logs", @"%APPDATA%\Code\logs", 7, null, false, 24, "Journaux de VS Code"),
-            new("vscode-vsix", @"%APPDATA%\Code\CachedExtensionVSIXs", 14, null, false, 24, "Paquets d'extensions VS Code deja installees"),
+            new("vscode-vsix", @"%APPDATA%\Code\CachedExtensionVSIXs", 14, null, false, 24, "Paquets d'extensions VS Code déjà installées"),
             new("npm-logs", @"%LOCALAPPDATA%\npm-cache\_logs", 7, null, false, 24, "Journaux npm"),
-            new("windows-temp", @"%SystemRoot%\Temp", 7, null, true, 24, "Fichiers temporaires du systeme"),
+            new("windows-temp", @"%SystemRoot%\Temp", 7, null, true, 24, "Fichiers temporaires du système"),
             new("wer-system", @"%ProgramData%\Microsoft\Windows\WER", 14, null, true, 24, "Rapports d'erreurs Windows"),
             new("cbs-logs", @"%SystemRoot%\Logs\CBS", 30, null, true, 24, "Journaux de maintenance Windows"),
         ],
@@ -54,19 +54,19 @@ public sealed record DiskOptions(
         var errors = new List<string>();
         foreach (var dup in Rules.GroupBy(r => r.Id, StringComparer.Ordinal).Where(g => g.Count() > 1))
         {
-            errors.Add($"Regle en double : {dup.Key}");
+            errors.Add($"Règle en double : {dup.Key}");
         }
 
         foreach (var r in Rules)
         {
             if (!cleaner.IsSafe(r.Path))
             {
-                errors.Add($"Regle {r.Id} : chemin hors liste blanche ({SafeCleaner.Expand(r.Path)})");
+                errors.Add($"Règle {r.Id} : chemin hors liste blanche ({SafeCleaner.Expand(r.Path)})");
             }
 
             if (r.OlderThanDays is < 1 or > 3650 || r.IntervalHours is < 1 or > 24 * 30)
             {
-                errors.Add($"Regle {r.Id} : duree hors bornes");
+                errors.Add($"Règle {r.Id} : durée hors bornes");
             }
 
             if (r.DirPattern is not null)
@@ -77,7 +77,7 @@ public sealed record DiskOptions(
                 }
                 catch (ArgumentException)
                 {
-                    errors.Add($"Regle {r.Id} : motif invalide");
+                    errors.Add($"Règle {r.Id} : motif invalide");
                 }
             }
         }

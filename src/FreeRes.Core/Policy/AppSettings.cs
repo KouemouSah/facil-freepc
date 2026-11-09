@@ -37,27 +37,27 @@ public sealed record AppSettings
         var errors = new List<string>();
         if (Version != 1)
         {
-            errors.Add($"Version de reglages non prise en charge : {Version}.");
+            errors.Add($"Version de réglages non prise en charge : {Version}.");
         }
 
         if (MonitorIntervalMinutes is < 1 or > 1440)
         {
-            errors.Add("L'intervalle de surveillance doit etre compris entre 1 et 1440 minutes.");
+            errors.Add("L'intervalle de surveillance doit être compris entre 1 et 1440 minutes.");
         }
 
         if (SnoozeHours <= 0 || RejectHours <= 0)
         {
-            errors.Add("Les durees de report et de rejet doivent etre positives.");
+            errors.Add("Les durées de report et de rejet doivent être positives.");
         }
 
         if (Notification.WindowCooldownMinutes <= 0 || Notification.ToastCooldownMinutes <= 0 || Notification.UserActiveMaxIdleMinutes <= 0)
         {
-            errors.Add("Les delais de notification doivent etre positifs.");
+            errors.Add("Les délais de notification doivent être positifs.");
         }
 
         if (Retention.HistoryDays <= 0 || Retention.LogDays <= 0 || Retention.DecisionsDays <= 0)
         {
-            errors.Add("Les durees de conservation doivent etre positives.");
+            errors.Add("Les durées de conservation doivent être positives.");
         }
 
         return errors;
@@ -96,17 +96,17 @@ public static class SettingsStore
         }
         catch (JsonException ex)
         {
-            return new SettingsLoadResult(new AppSettings(), [$"settings.json illisible ({ex.Message}) : valeurs par defaut appliquees."]);
+            return new SettingsLoadResult(new AppSettings(), [$"settings.json illisible ({ex.Message}) : valeurs par défaut appliquées."]);
         }
 
         if (settings is null)
         {
-            return new SettingsLoadResult(new AppSettings(), ["settings.json vide : valeurs par defaut appliquees."]);
+            return new SettingsLoadResult(new AppSettings(), ["settings.json vide : valeurs par défaut appliquées."]);
         }
 
         var errors = settings.Validate();
         return errors.Count == 0
             ? new SettingsLoadResult(settings, [])
-            : new SettingsLoadResult(new AppSettings(), errors.Select(e => e + " Valeurs par defaut appliquees.").ToList());
+            : new SettingsLoadResult(new AppSettings(), errors.Select(e => e + " Valeurs par défaut appliquées.").ToList());
     }
 }

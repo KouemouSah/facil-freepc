@@ -109,7 +109,7 @@ public sealed class WindowsMaintenanceTests : IDisposable
         {
             var outcome = await catalog.Resolve(ActionRequest.Of(type)).Execute(ActionRequest.Of(type), false, default);
             Assert.False(outcome.Ok);
-            Assert.Contains("Redemarrage en attente", outcome.Message, StringComparison.Ordinal);
+            Assert.Contains("Redémarrage en attente", outcome.Message, StringComparison.Ordinal);
             Assert.True(catalog.Resolve(ActionRequest.Of(type)).RequiresAdmin);
         }
 

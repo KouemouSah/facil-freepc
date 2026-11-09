@@ -347,7 +347,7 @@ public sealed class DockerModuleTests : IDisposable
     public void DockerPrune_refuse_volumes_et_tout_niveau_inconnu(string level)
     {
         var ex = Assert.Throws<ActionRejectedException>(() => Catalog().Resolve(Req(DockerModule.DockerPrune, "level", level)));
-        Assert.Contains("volumes ne sont JAMAIS purges", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("volumes ne sont JAMAIS purgés", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -356,7 +356,7 @@ public sealed class DockerModuleTests : IDisposable
         var catalog = Catalog();
         Assert.Contains("level", Assert.Throws<ActionRejectedException>(() => catalog.Resolve(ActionRequest.Of(DockerModule.DockerPrune))).Message, StringComparison.Ordinal);
         var extra = new ActionRequest(DockerModule.DockerPrune, new Dictionary<string, string> { ["level"] = "builder", ["volumes"] = "true" });
-        Assert.Contains("un seul parametre", Assert.Throws<ActionRejectedException>(() => catalog.Resolve(extra)).Message, StringComparison.Ordinal);
+        Assert.Contains("un seul paramètre", Assert.Throws<ActionRejectedException>(() => catalog.Resolve(extra)).Message, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -385,7 +385,7 @@ public sealed class DockerModuleTests : IDisposable
         Assert.Equal("Docker Desktop ne tourne pas", p.Message);
         var t = await catalog.Resolve(ActionRequest.Of(DockerModule.DockerTrim)).Execute(ActionRequest.Of(DockerModule.DockerTrim), false, default);
         Assert.False(t.Ok);
-        Assert.Contains("disque de donnees non monte", t.Message, StringComparison.Ordinal);
+        Assert.Contains("disque de données non monté", t.Message, StringComparison.Ordinal);
         Assert.False(catalog.Resolve(ActionRequest.Of(DockerModule.DockerTrim)).RequiresAdmin);
         Assert.Empty(_processes.Calls);
     }
@@ -407,7 +407,7 @@ public sealed class DockerModuleTests : IDisposable
     public void WslTerminate_refuse_une_autre_distribution(string distro)
     {
         var ex = Assert.Throws<ActionRejectedException>(() => Catalog().Resolve(Req(DockerModule.WslTerminate, "distro", distro)));
-        Assert.Contains("distribution non autorisee", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("distribution non autorisée", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -435,7 +435,7 @@ public sealed class DockerModuleTests : IDisposable
         Assert.True(def.RequiresAdmin);
         var outcome = await def.Execute(ActionRequest.Of(DockerModule.CompactDockerVhdx), false, default);
         Assert.False(outcome.Ok);
-        Assert.Contains("arretez-le avant le compactage", outcome.Message, StringComparison.Ordinal);
+        Assert.Contains("arrêtez-le avant le compactage", outcome.Message, StringComparison.Ordinal);
         Assert.Empty(_processes.Calls);
     }
 
@@ -443,7 +443,7 @@ public sealed class DockerModuleTests : IDisposable
     public void CompactDockerVhdx_refuse_tout_chemin_passe_en_parametre()
     {
         var ex = Assert.Throws<ActionRejectedException>(() => Catalog().Resolve(Req(DockerModule.CompactDockerVhdx, "path", @"C:\Windows\System32\config\SYSTEM")));
-        Assert.Contains("aucun parametre attendu", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("aucun paramètre attendu", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -493,7 +493,7 @@ public sealed class DockerModuleTests : IDisposable
 
         var outcome = await Catalog().Resolve(ActionRequest.Of(DockerModule.CompactDockerVhdx)).Execute(ActionRequest.Of(DockerModule.CompactDockerVhdx), false, default);
         Assert.False(outcome.Ok);
-        Assert.Contains("diskpart a echoue (code 2", outcome.Message, StringComparison.Ordinal);
+        Assert.Contains("diskpart a échoué (code 2", outcome.Message, StringComparison.Ordinal);
         Assert.Equal(2, diskpartCalls);
         Assert.Equal($"select vdisk file=\"{FakeDockerHost.Vhdx}\"\r\ndetach vdisk\r\n", _processes.Inputs[^1]);
     }
@@ -506,7 +506,7 @@ public sealed class DockerModuleTests : IDisposable
         var catalog = Catalog();
         var outcome = await catalog.Resolve(ActionRequest.Of(DockerModule.CompactDockerVhdx)).Execute(ActionRequest.Of(DockerModule.CompactDockerVhdx), false, default);
         Assert.False(outcome.Ok);
-        Assert.Contains("wsl --shutdown a echoue", outcome.Message, StringComparison.Ordinal);
+        Assert.Contains("wsl --shutdown a échoué", outcome.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(_processes.Calls, c => c.File.EndsWith("diskpart.exe", StringComparison.OrdinalIgnoreCase));
 
         _host.VhdxPath = null;
@@ -540,7 +540,7 @@ public sealed class DockerModuleTests : IDisposable
     [Fact]
     public void Periodicite_nulle_refusee_et_reglages_par_defaut_valides()
     {
-        Assert.Contains("TrimEveryHours doit etre > 0", (DockerOptions.Default with { TrimEveryHours = 0 }).Validate());
+        Assert.Contains("TrimEveryHours doit être > 0", (DockerOptions.Default with { TrimEveryHours = 0 }).Validate());
         Assert.Empty(DockerOptions.Default.Validate());
         Assert.Equal(6, DockerOptions.Default.MeasureEveryHours);
         Assert.Equal(1.5, DockerOptions.Default.CompactMinGainGB);

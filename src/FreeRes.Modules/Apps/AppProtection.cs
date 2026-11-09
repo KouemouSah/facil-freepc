@@ -11,10 +11,10 @@ namespace FreeRes.Modules.Apps;
 /// </summary>
 internal sealed partial class AppProtection(AppsEnvironment environment)
 {
-    public const string SelfReason = "Facil FreePC lui-meme";
+    public const string SelfReason = "Facil FreePC lui-même";
     public const string WindowsReason = "composant Windows";
-    public const string SecurityPrefix = "logiciel de securite";
-    public const string DriverPrefix = "pilote d'entree, audio ou graphique";
+    public const string SecurityPrefix = "logiciel de sécurité";
+    public const string DriverPrefix = "pilote d'entrée, audio ou graphique";
 
     // Bornes : ni lettre ni chiffre de part et d'autre.
     private const string B = "(?<![A-Za-z0-9])";

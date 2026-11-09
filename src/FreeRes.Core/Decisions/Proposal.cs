@@ -33,15 +33,15 @@ public sealed partial record Proposal(string Id, string Title, string Detail, do
 
         if (string.IsNullOrWhiteSpace(Title) || Title.Length > 200)
         {
-            return "Titre de proposition vide ou trop long (200 caracteres au plus)";
+            return "Titre de proposition vide ou trop long (200 caractères au plus)";
         }
 
         if (Detail.Length > 2000)
         {
-            return "Detail de proposition trop long (2000 caracteres au plus)";
+            return "Détail de proposition trop long (2000 caractères au plus)";
         }
 
-        return EstGainGB is < 0 or double.NaN ? "Gain estime invalide" : null;
+        return EstGainGB is < 0 or double.NaN ? "Gain estimé invalide" : null;
     }
 }
 

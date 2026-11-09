@@ -45,7 +45,7 @@ public sealed class FreeResDatabaseTests : IDisposable
         }
 
         var ex = Assert.Throws<DatabaseVersionException>(() => new FreeResDatabase(path));
-        Assert.Contains("plus recente", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("plus récente", ex.Message, StringComparison.Ordinal);
 
         using var check = new SqliteConnection($"Data Source={path};Pooling=False");
         check.Open();

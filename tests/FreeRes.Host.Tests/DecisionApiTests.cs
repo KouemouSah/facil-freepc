@@ -52,9 +52,9 @@ public sealed class DecisionApiTests : IAsyncLifetime
                         Interlocked.Increment(ref _executions);
                         return Task.FromResult(new ActionOutcome(true, "cache libere"));
                     }));
-                    c.Register(new ActionDefinition("TestAuto", false, _ => null, (_, _, _) => Task.FromResult(new ActionOutcome(true, "machine virtuelle arretee"))));
+                    c.Register(new ActionDefinition("TestAuto", false, _ => null, (_, _, _) => Task.FromResult(new ActionOutcome(true, "machine virtuelle arrêtée"))));
                     // Action automatique sans effet : journalisee, mais absente de « Fait automatiquement ».
-                    c.Register(new ActionDefinition("TestAutoNoop", false, _ => null, (_, _, _) => Task.FromResult(new ActionOutcome(true, "zone deja propre", Changed: false))));
+                    c.Register(new ActionDefinition("TestAutoNoop", false, _ => null, (_, _, _) => Task.FromResult(new ActionOutcome(true, "zone déjà propre", Changed: false))));
                 }));
         _host = LocalWebHost.Create(new LocalWebHostOptions { Token = Token }, _runtime, b => b.WebHost.UseTestServer());
         await _host.StartAsync();
@@ -189,7 +189,7 @@ public sealed class DecisionApiTests : IAsyncLifetime
         var auto = Assert.Single(s.GetProperty("recentAuto").EnumerateArray());
         Assert.Equal("action", auto.GetProperty("kind").GetString());
         Assert.True(auto.GetProperty("auto").GetBoolean());
-        Assert.Contains("machine virtuelle arretee", auto.GetProperty("message").GetString(), StringComparison.Ordinal);
+        Assert.Contains("machine virtuelle arrêtée", auto.GetProperty("message").GetString(), StringComparison.Ordinal);
         Assert.Equal(24, s.GetProperty("snoozeHours").GetDouble());
         Assert.Equal(168, s.GetProperty("rejectHours").GetDouble());
         Assert.Equal(_dir, s.GetProperty("dataDirectory").GetString());

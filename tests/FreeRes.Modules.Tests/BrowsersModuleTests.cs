@@ -100,7 +100,7 @@ public sealed class BrowsersModuleTests : IDisposable
         new("chrome", "Google Chrome", BrowserEngine.Chromium, "chrome.exe", [ChromeExe], ChromeData, true, "chrome://settings/performance", "chrome://settings/onStartup"),
         new("brave", "Brave", BrowserEngine.Chromium, "brave.exe", [BraveExe], @"C:\D\Brave", false, null, null),
         new("firefox", "Mozilla Firefox", BrowserEngine.Gecko, "firefox.exe", [FirefoxExe], null, true, null, "about:preferences#general", ".default-release"),
-        new("firefox-dev", "Firefox Developer Edition", BrowserEngine.Gecko, "firefox.exe", [FirefoxDevExe], null, true, null, "about:preferences#general"),
+        new("firefox-dev", "Firefox Developer Édition", BrowserEngine.Gecko, "firefox.exe", [FirefoxDevExe], null, true, null, "about:preferences#general"),
     ];
 
     private BrowsersModule Module(int quitTimeoutSeconds = 2) =>
@@ -221,7 +221,7 @@ public sealed class BrowsersModuleTests : IDisposable
         Run(ChromeExe, 300, 4 * GB, 20);   // 2e instance (autre dossier de donnees)
         var m = Module();
         Assert.Empty((await m.EvaluateAsync(Ctx.Build(), default)).Proposals);
-        Assert.Equal("Plusieurs instances : redemarrage non sur", m.LastStatus.Single().RestartNote);
+        Assert.Equal("Plusieurs instances : redémarrage non sur", m.LastStatus.Single().RestartNote);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed class BrowsersModuleTests : IDisposable
         Run(BraveExe, 400, 9 * GB, 30);
         var m = Module();
         Assert.Empty((await m.EvaluateAsync(Ctx.Build(), default)).Proposals);
-        Assert.Equal("Redemarrage non verifie pour ce navigateur", m.LastStatus.Single().RestartNote);
+        Assert.Equal("Redémarrage non vérifié pour ce navigateur", m.LastStatus.Single().RestartNote);
     }
 
     [Fact]
@@ -269,7 +269,7 @@ public sealed class BrowsersModuleTests : IDisposable
         FirefoxProfile("std", restoreSession: true);
         Run(FirefoxExe, 500, 7 * GB, 20);
         Run(FirefoxDevExe, 600, 7 * GB, 20);
-        Assert.All(Module().Inspect(), s => Assert.Equal("Plusieurs editions de Firefox ouvertes : profil ambigu", s.RestartNote));
+        Assert.All(Module().Inspect(), s => Assert.Equal("Plusieurs éditions de Firefox ouvertes : profil ambigu", s.RestartNote));
     }
 
     // ------------------------------------------------------------------ actions
@@ -310,7 +310,7 @@ public sealed class BrowsersModuleTests : IDisposable
         var (c, _) = Catalog();
         var outcome = await c.Resolve(Restart("chrome")).Execute(Restart("chrome"), false, default);
         Assert.False(outcome.Ok);
-        Assert.Contains("rien n'a ete force", outcome.Message, StringComparison.Ordinal);
+        Assert.Contains("rien n'a été forcé", outcome.Message, StringComparison.Ordinal);
         Assert.Empty(_launcher.Launches);
         Assert.Equal(4, _p.Running.Count);   // toujours ouvert
     }
@@ -325,7 +325,7 @@ public sealed class BrowsersModuleTests : IDisposable
         var (c, _) = Catalog(quitTimeoutSeconds: 1);
         var outcome = await c.Resolve(Restart("chrome")).Execute(Restart("chrome"), false, default);
         Assert.False(outcome.Ok);
-        Assert.Contains("ne s'est pas ferme", outcome.Message, StringComparison.Ordinal);
+        Assert.Contains("ne s'est pas fermé", outcome.Message, StringComparison.Ordinal);
         Assert.Empty(_launcher.Launches);
     }
 
@@ -372,7 +372,7 @@ public sealed class BrowsersModuleTests : IDisposable
         var (c, _) = Catalog();
         var outcome = await c.Resolve(Restart("firefox")).Execute(Restart("firefox"), false, default);
         Assert.False(outcome.Ok);
-        Assert.Contains("aucune touche envoyee", outcome.Message, StringComparison.Ordinal);
+        Assert.Contains("aucune touche envoyée", outcome.Message, StringComparison.Ordinal);
         Assert.Empty(_launcher.Launches);
     }
 
@@ -386,7 +386,7 @@ public sealed class BrowsersModuleTests : IDisposable
         FirefoxProfile("std", restoreSession: false);   // l'utilisateur a change le reglage entre-temps
         var outcome = await c.Resolve(Restart("firefox")).Execute(Restart("firefox"), false, default);
         Assert.False(outcome.Ok);
-        Assert.Contains("Restauration de session desactivee", outcome.Message, StringComparison.Ordinal);
+        Assert.Contains("Restauration de session désactivée", outcome.Message, StringComparison.Ordinal);
         Assert.Empty(_p.CloseRequests);
     }
 

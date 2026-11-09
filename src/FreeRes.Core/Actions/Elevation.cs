@@ -39,7 +39,7 @@ public static partial class ElevatedActionProtocol
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(request, Json);
         var encoded = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        return encoded.Length <= MaxEncodedLength ? encoded : throw new ArgumentException("Requete d'action trop longue", nameof(request));
+        return encoded.Length <= MaxEncodedLength ? encoded : throw new ArgumentException("Requête d'action trop longue", nameof(request));
     }
 
     /// <summary>Decode une requete ; null si absente, trop longue ou mal formee (jamais d'exception sur une entree hostile).</summary>

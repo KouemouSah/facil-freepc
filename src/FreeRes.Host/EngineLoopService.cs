@@ -28,7 +28,7 @@ public sealed class EngineLoopService(FreeResRuntime runtime) : BackgroundServic
             catch (Exception ex)
 #pragma warning restore CA1031
             {
-                runtime.Log.Write(LogLevel.Error, "monitor", $"Cycle en echec : {ex.Message}");
+                runtime.Log.Write(LogLevel.Error, "monitor", $"Cycle en échec : {ex.Message}");
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));

@@ -76,8 +76,8 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
             {
                 proposals.Add(new Proposal(
                     $"browser-{st.Id}-memory-saver",
-                    $"Activer l'economiseur de memoire de {st.Name}",
-                    "Il est desactive : les onglets inactifs restent en memoire. La page de reglage du navigateur s'ouvre ; activez « Economiseur de memoire ».",
+                    $"Activer l'économiseur de mémoire de {st.Name}",
+                    "Il est désactivé : les onglets inactifs restent en mémoire. La page de réglage du navigateur s'ouvre ; activez « Économiseur de mémoire ».",
                     0,
                     pressure ? Severity.Warn : Severity.Info,
                     Settings(st.Id, "performance")));
@@ -88,8 +88,8 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
             {
                 proposals.Add(new Proposal(
                     $"browser-{st.Id}-restart",
-                    string.Create(CultureInfo.InvariantCulture, $"Redemarrer {st.Name} proprement ({st.WorkingSetGB} GB, ouvert depuis {Math.Round(st.UptimeHours ?? 0)} h)"),
-                    "Fermeture propre (jamais forcee) puis relance avec restauration de toutes les fenetres et onglets, recharges seulement au clic. ENREGISTREZ vos formulaires en cours.",
+                    string.Create(CultureInfo.InvariantCulture, $"Redémarrer {st.Name} proprement ({st.WorkingSetGB} GB, ouvert depuis {Math.Round(st.UptimeHours ?? 0)} h)"),
+                    "Fermeture propre (jamais forcée) puis relance avec restauration de toutes les fenêtres et onglets, rechargés seulement au clic. ENREGISTREZ vos formulaires en cours.",
                     Math.Round(Math.Max(0, st.WorkingSetGB - 1.5), 2),
                     critical ? Severity.Crit : Severity.Warn,
                     new ActionRequest(RestartBrowser, new Dictionary<string, string> { ["browser"] = st.Id })));
@@ -99,7 +99,7 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
                 proposals.Add(new Proposal(
                     $"browser-{st.Id}-session-restore",
                     $"Activer la restauration de session de {st.Name}",
-                    string.Create(CultureInfo.InvariantCulture, $"{st.Name} occupe {st.WorkingSetGB} GB, mais un redemarrage perdrait vos onglets : cochez « Ouvrir les fenetres et onglets precedents ». FreePC pourra alors proposer un redemarrage sur."),
+                    string.Create(CultureInfo.InvariantCulture, $"{st.Name} occupe {st.WorkingSetGB} GB, mais un redémarrage perdrait vos onglets : cochez « Ouvrir les fenêtres et onglets précédents ». FreePC pourra alors proposer un redémarrage sur."),
                     0,
                     Severity.Info,
                     Settings(st.Id, "startup")));
@@ -110,7 +110,7 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
                 proposals.Add(new Proposal(
                     $"browser-{st.Id}-extension",
                     $"Installer l'extension Facil FreePC dans {st.Name}",
-                    "Firefox ne met en veille ses onglets que lorsque la memoire est deja epuisee. L'extension decharge automatiquement les onglets inactifs depuis 30 min (jamais l'onglet actif, epingle ou qui joue du son). Confirmez l'installation dans Firefox.",
+                    "Firefox ne met en veille ses onglets que lorsque la mémoire est déjà épuisée. L'extension décharge automatiquement les onglets inactifs depuis 30 min (jamais l'onglet actif, épinglé ou qui joue du son). Confirmez l'installation dans Firefox.",
                     0,
                     pressure ? Severity.Warn : Severity.Info,
                     new ActionRequest(InstallFirefoxExtension, new Dictionary<string, string> { ["browser"] = st.Id })));
@@ -120,7 +120,7 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
         return Task.FromResult(new ModuleEvaluation(proposals, []));
     }
 
-    internal const string SessionRestoreOff = "Restauration de session desactivee";
+    internal const string SessionRestoreOff = "Restauration de session désactivée";
 
     /// <summary>Etat de chaque navigateur INSTALLE.</summary>
     public IReadOnlyList<BrowserStatus> Inspect()
@@ -149,7 +149,7 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
         var running = own.Count > 0;
 
         bool? memorySaver = null;
-        var memoryNote = "Non verifiable pour ce navigateur";
+        var memoryNote = "Non vérifiable pour ce navigateur";
         int activeProfiles = 0;
         string? activeProfile = null;
         bool? extension = null;
@@ -161,36 +161,36 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
             if (def.MemorySaverSettingsUrl is not null)
             {
                 memorySaver = _reader.ChromiumMemorySaver(dir);
-                memoryNote = memorySaver switch { true => "Active", false => "Desactive", null => "Valeur par defaut du navigateur" };
+                memoryNote = memorySaver switch { true => "Active", false => "Desactive", null => "Valeur par défaut du navigateur" };
             }
 
             var profiles = _reader.ChromiumActiveProfiles(dir);
             activeProfiles = profiles.Count;
             activeProfile = profiles.Count == 1 ? profiles[0] : null;
-            restartNote = !def.RestartValidated ? "Redemarrage non verifie pour ce navigateur"
-                : !running ? "Non lance"
-                : mains.Count != 1 ? "Plusieurs instances : redemarrage non sur"
+            restartNote = !def.RestartValidated ? "Redémarrage non vérifié pour ce navigateur"
+                : !running ? "Non lancé"
+                : mains.Count != 1 ? "Plusieurs instances : redémarrage non sur"
                 : profiles.Count > 1 ? "Plusieurs profils ouverts : la restauration de tous les profils n'est pas garantie"
                 : "Possible";
             activeProfile ??= profiles.Count == 0 ? "Default" : null;
         }
         else if (def.Engine == BrowserEngine.Gecko)
         {
-            memoryNote = "Dechargement integre seulement en cas de memoire basse : extension compagnon recommandee";
+            memoryNote = "Déchargement intégré seulement en cas de mémoire basse : extension compagnon recommandée";
             activeProfile = running && firefoxRunning == 1 ? _reader.FirefoxActiveProfile(_profilesRoot) : null;
             extension = activeProfile is null ? null : _reader.FirefoxExtensionActive(activeProfile);
             activeProfiles = activeProfile is null ? 0 : 1;
-            restartNote = !def.RestartValidated ? "Redemarrage non verifie pour ce navigateur"
-                : !running ? "Non lance"
-                : firefoxRunning > 1 ? "Plusieurs editions de Firefox ouvertes : profil ambigu"
-                : mains.Count != 1 ? "Plusieurs instances : redemarrage non sur"
+            restartNote = !def.RestartValidated ? "Redémarrage non vérifié pour ce navigateur"
+                : !running ? "Non lancé"
+                : firefoxRunning > 1 ? "Plusieurs éditions de Firefox ouvertes : profil ambigu"
+                : mains.Count != 1 ? "Plusieurs instances : redémarrage non sur"
                 : activeProfile is null ? "Profil actif introuvable"
-                : !_reader.FirefoxRestoresSession(activeProfile) ? $"{SessionRestoreOff} : un redemarrage perdrait les onglets"
+                : !_reader.FirefoxRestoresSession(activeProfile) ? $"{SessionRestoreOff} : un redémarrage perdrait les onglets"
                 : "Possible";
         }
         else
         {
-            restartNote = !def.RestartValidated ? "Redemarrage non verifie pour ce navigateur" : "Non lance";
+            restartNote = !def.RestartValidated ? "Redémarrage non vérifié pour ce navigateur" : "Non lancé";
         }
 
         return new BrowserStatus(def.Id, def.Name, exe, running, own.Count, mains.Count, own.Sum(p => p.WorkingSetBytes), uptime,
@@ -225,23 +225,23 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
     {
         if ((onlyKey && p.Count != 1) || !p.TryGetValue("browser", out var id) || _catalog.FirstOrDefault(d => d.Id == id) is not { } def)
         {
-            return "navigateur inconnu (parametre « browser »)";
+            return "navigateur inconnu (paramètre « browser »)";
         }
 
-        return gecko && def.Engine != BrowserEngine.Gecko ? "action reservee a Firefox" : null;
+        return gecko && def.Engine != BrowserEngine.Gecko ? "action réservée à Firefox" : null;
     }
 
     private string? ValidateSettings(IReadOnlyDictionary<string, string> p)
     {
         if (p.Count != 2 || ValidateBrowser(p, onlyKey: false) is { } error)
         {
-            return "parametres attendus : browser et page";
+            return "paramètres attendus : browser et page";
         }
 
         var def = _catalog.First(d => d.Id == p["browser"]);
         return p.TryGetValue("page", out var page) && (page == "performance" ? def.MemorySaverSettingsUrl : page == "startup" ? def.StartupSettingsUrl : null) is not null
             ? null
-            : "page de reglage inconnue pour ce navigateur";
+            : "page de réglage inconnue pour ce navigateur";
     }
 
     private ActionOutcome OpenSettings(ActionRequest req, bool dryRun)
@@ -251,7 +251,7 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
         var exe = Inspect().FirstOrDefault(s => s.Id == def.Id)?.ExePath;
         if (exe is null)
         {
-            return new ActionOutcome(false, $"{def.Name} n'est pas installe");
+            return new ActionOutcome(false, $"{def.Name} n'est pas installé");
         }
 
         if (dryRun)
@@ -260,7 +260,7 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
         }
 
         return _launcher.Launch(exe, [url])
-            ? new ActionOutcome(true, $"Page de reglage ouverte dans {def.Name} : {url}")
+            ? new ActionOutcome(true, $"Page de réglage ouverte dans {def.Name} : {url}")
             : new ActionOutcome(false, $"Impossible de lancer {def.Name}");
     }
 
@@ -269,17 +269,17 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
         var st = Inspect().FirstOrDefault(s => s.Id == req.Parameters["browser"]);
         if (st is null)
         {
-            return new ActionOutcome(false, "Firefox n'est pas installe");
+            return new ActionOutcome(false, "Firefox n'est pas installé");
         }
 
         if (!_platform.IsSignedXpi(_extensionXpi))
         {
-            return new ActionOutcome(false, "Extension signee par Mozilla indisponible dans cette version");
+            return new ActionOutcome(false, "Extension signée par Mozilla indisponible dans cette version");
         }
 
         if (dryRun)
         {
-            return new ActionOutcome(true, "simulation : installation de l'extension proposee a Firefox");
+            return new ActionOutcome(true, "simulation : installation de l'extension proposée à Firefox");
         }
 
         return _launcher.Launch(st.ExePath, [_extensionXpi])
@@ -294,7 +294,7 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
         var st = Inspect().FirstOrDefault(s => s.Id == def.Id);
         if (st is null || !st.RestartPossible)
         {
-            return new ActionOutcome(false, $"Redemarrage refuse : {st?.RestartNote ?? "navigateur non installe"}");
+            return new ActionOutcome(false, $"Redémarrage refusé : {st?.RestartNote ?? "navigateur non installe"}");
         }
 
         var main = MainProcess(def, st.ExePath);
@@ -305,7 +305,7 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
 
         if (dryRun)
         {
-            return new ActionOutcome(true, $"simulation : redemarrage propre de {def.Name} ({st.WorkingSetGB} GB)");
+            return new ActionOutcome(true, $"simulation : redémarrage propre de {def.Name} ({st.WorkingSetGB} GB)");
         }
 
         if (def.Engine == BrowserEngine.Chromium)
@@ -313,12 +313,12 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
             var code = _platform.CloseChromium(main.Pid, main.StartTime ?? _time.GetLocalNow());
             if (code != 0)
             {
-                return new ActionOutcome(false, $"{def.Name} a refuse la fermeture (code {code}) : rien n'a ete force");
+                return new ActionOutcome(false, $"{def.Name} a refusé la fermeture (code {code}) : rien n'a été forcé");
             }
         }
         else if (!_platform.SendFirefoxQuit(main.Pid))
         {
-            return new ActionOutcome(false, $"{def.Name} n'a pas pu etre mis au premier plan : aucune touche envoyee, rien n'a ete ferme");
+            return new ActionOutcome(false, $"{def.Name} n'a pas pu être mis au premier plan : aucune touche envoyée, rien n'a été fermé");
         }
 
         // Attente REELLE (chronometre, pas l'horloge injectee : une horloge de test figee bloquerait la boucle).
@@ -327,7 +327,7 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
         {
             if (waited.Elapsed.TotalSeconds >= _options.QuitTimeoutSeconds)
             {
-                return new ActionOutcome(false, $"{def.Name} ne s'est pas ferme en {_options.QuitTimeoutSeconds} s (une page demande peut-etre confirmation). Rien n'a ete force.");
+                return new ActionOutcome(false, $"{def.Name} ne s'est pas fermé en {_options.QuitTimeoutSeconds} s (une page demande peut-être confirmation). Rien n'a été forcé.");
             }
 
             await Task.Delay(500, ct).ConfigureAwait(false);
@@ -339,8 +339,8 @@ public sealed class BrowsersModule : IResourceModule, IStatusSource
                 ? []                                   // profil par defaut de l'edition : comme le lancement habituel
                 : ["-profile", st.ActiveProfile!];
         return _launcher.Launch(st.ExePath, args)
-            ? new ActionOutcome(true, string.Create(CultureInfo.InvariantCulture, $"{def.Name} ({st.WorkingSetGB} GB) ferme proprement puis relance, fenetres et onglets restaures"))
-            : new ActionOutcome(false, $"{def.Name} ferme, mais la relance a echoue : relancez-le (vos onglets seront restaures)");
+            ? new ActionOutcome(true, string.Create(CultureInfo.InvariantCulture, $"{def.Name} ({st.WorkingSetGB} GB) fermé proprement puis relancé, fenêtres et onglets restaurés"))
+            : new ActionOutcome(false, $"{def.Name} fermé, mais la relance a échoué : relancez-le (vos onglets seront restaurés)");
     }
 
     private BrowserProcess? MainProcess(BrowserDefinition def, string exe)

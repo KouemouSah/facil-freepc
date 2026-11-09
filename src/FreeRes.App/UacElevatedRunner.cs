@@ -22,7 +22,7 @@ internal sealed class UacElevatedRunner(AppPaths paths, TimeSpan timeout) : IEle
     public async Task<ActionResult> RunAsync(ActionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var exe = Environment.ProcessPath ?? throw new InvalidOperationException("Chemin de l'executable introuvable");
+        var exe = Environment.ProcessPath ?? throw new InvalidOperationException("Chemin de l'exécutable introuvable");
         var resultPath = ElevatedActionProtocol.NewResultPath(paths);
         var psi = new ProcessStartInfo(exe)
         {
@@ -44,7 +44,7 @@ internal sealed class UacElevatedRunner(AppPaths paths, TimeSpan timeout) : IEle
 
         if (process is null)
         {
-            return new ActionResult(request.Type, false, "Relance elevee impossible", 0, false);
+            return new ActionResult(request.Type, false, "Relance élevée impossible", 0, false);
         }
 
         using (process)
@@ -57,12 +57,12 @@ internal sealed class UacElevatedRunner(AppPaths paths, TimeSpan timeout) : IEle
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                return new ActionResult(request.Type, false, $"Action elevee toujours en cours apres {timeout}", 0, false);
+                return new ActionResult(request.Type, false, $"Action élevée toujours en cours après {timeout}", 0, false);
             }
 
             var result = ElevatedActionProtocol.ReadResult(resultPath);
             TryDelete(resultPath);
-            return result ?? new ActionResult(request.Type, false, $"Resultat de l'action elevee introuvable (code {process.ExitCode})", 0, false);
+            return result ?? new ActionResult(request.Type, false, $"Résultat de l'action élevée introuvable (code {process.ExitCode})", 0, false);
         }
     }
 

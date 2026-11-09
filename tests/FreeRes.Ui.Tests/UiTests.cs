@@ -32,8 +32,8 @@ internal sealed class UiModules : IResourceModule
         Task.FromResult(new ModuleEvaluation(
             [
                 new Proposal("ui-conseil", "Vider la corbeille", "La corbeille occupe 1,2 GB.", 1.2, Severity.Info, ActionRequest.Of("UiCount")),
-                new Proposal("ui-critique", "Redemarrer <b>Firefox</b>", "Firefox occupe 6 GB depuis 3 jours.", 5.5, Severity.Crit, ActionRequest.Of("UiCount")),
-                new Proposal("ui-admin", "Passer un service en manuel", "Service tiers inutile au demarrage.", 0.2, Severity.Warn, ActionRequest.Of("UiAdmin")),
+                new Proposal("ui-critique", "Redémarrer <b>Firefox</b>", "Firefox occupe 6 GB depuis 3 jours.", 5.5, Severity.Crit, ActionRequest.Of("UiCount")),
+                new Proposal("ui-admin", "Passer un service en manuel", "Service tiers inutile au démarrage.", 0.2, Severity.Warn, ActionRequest.Of("UiAdmin")),
             ],
             []));
 }
@@ -93,7 +93,7 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
             [new InstalledApp("app-docker", "Docker Desktop", "Docker Inc.", "4.50", @"C:\Program Files\Docker", 2_000_000, null, AppScope.Machine, AppSource.Registry, @"C:\Program Files\Docker", null)],
             [
                 new StartupItem("su-teams", StartupKind.Run, AppScope.User, "Teams <script>", @"HKCU\...\Run", "teams.exe", @"C:\T\teams.exe", true, "Run", null, null),
-                new StartupItem("su-defender", StartupKind.Run, AppScope.Machine, "SecurityHealth", @"HKLM\...\Run", "SecurityHealthSystray.exe", null, true, "Run", null, "Securite Windows"),
+                new StartupItem("su-defender", StartupKind.Run, AppScope.Machine, "SecurityHealth", @"HKLM\...\Run", "SecurityHealthSystray.exe", null, true, "Run", null, "Sécurité Windows"),
                 new StartupItem("su-old", StartupKind.StartupFolder, AppScope.User, "Ancien.lnk", @"C:\Startup", null, null, false, "StartupFolder", null, null),
             ],
             [new AppUsage("app-docker", "Docker Desktop", 6, 0, 1_600_000_000), new AppUsage("app-code", "Visual Studio Code", 12, 1, 2_100_000_000)],
@@ -188,7 +188,7 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
         Assert.Equal("3", await _page.Locator("#pending-count").TextContentAsync());
 
         var titles = await _page.Locator(".decision .title").AllTextContentsAsync();
-        Assert.Equal(["Redemarrer <b>Firefox</b>", "Passer un service en manuel", "Vider la corbeille"], titles);
+        Assert.Equal(["Redémarrer <b>Firefox</b>", "Passer un service en manuel", "Vider la corbeille"], titles);
         Assert.Equal("Crit", await _page.Locator(".decision").First.GetAttributeAsync("data-severity"));
 
         // Defaut constate sur capture : l'etat vide s'affichait malgre 3 decisions et ecrasait la file.
@@ -196,7 +196,7 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
         foreach (var d in await _page.Locator(".decision").AllAsync())
         {
             var box = await d.BoundingBoxAsync();
-            Assert.True(box is not null && box.Y + box.Height <= Height, "decision hors de la fenetre sans defilement");
+            Assert.True(box is not null && box.Y + box.Height <= Height, "décision hors de la fenêtre sans defilement");
         }
 
         Assert.True(_consoleErrors.Count == 0, string.Join(" | ", _consoleErrors));

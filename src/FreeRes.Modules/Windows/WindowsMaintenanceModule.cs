@@ -25,7 +25,7 @@ public sealed record WindowsMaintenanceOptions(
 /// retenait 2,4 GB), WMI et DISM ; le cache Windows Update occupait 10,5 GB.
 ///   * redemarrage en attente depuis longtemps -> proposition critique (redemarrage planifie, annulable) ;
 ///   * disque sous le seuil d'alerte -> cache Windows Update, nettoyage DISM (administrateur, UAC).
-/// Jamais pendant un redemarrage en attente : nettoyer le cache ou lancer DISM pourrait casser la mise a jour.
+/// Jamais pendant un redemarrage en attente : nettoyer le cache ou lancer DISM pourrait casser la mise à jour.
 /// </summary>
 public sealed class WindowsMaintenanceModule : IResourceModule, IActionObserver
 {
@@ -84,8 +84,8 @@ public sealed class WindowsMaintenanceModule : IResourceModule, IActionObserver
             {
                 proposals.Add(new Proposal(
                     "windows-reboot-pending",
-                    string.Create(CultureInfo.InvariantCulture, $"Redemarrage Windows en attente depuis {Math.Round(hours)} h"),
-                    string.Create(CultureInfo.InvariantCulture, $"Une mise a jour attend le redemarrage : elle retient de la memoire et bloque la maintenance. Redemarrage planifie dans {_options.RebootDelayMinutes} min (annulable : shutdown /a). Enregistrez votre travail."),
+                    string.Create(CultureInfo.InvariantCulture, $"Redémarrage Windows en attente depuis {Math.Round(hours)} h"),
+                    string.Create(CultureInfo.InvariantCulture, $"Une mise à jour attend le redémarrage : elle retient de la mémoire et bloque la maintenance. Redémarrage planifié dans {_options.RebootDelayMinutes} min (annulable : shutdown /a). Enregistrez votre travail."),
                     0,
                     Severity.Crit,
                     new ActionRequest(ScheduleReboot, new Dictionary<string, string> { ["minutes"] = _options.RebootDelayMinutes.ToString(CultureInfo.InvariantCulture) })));
@@ -104,8 +104,8 @@ public sealed class WindowsMaintenanceModule : IResourceModule, IActionObserver
             {
                 proposals.Add(new Proposal(
                     "windows-update-cache",
-                    "Vider le cache de telechargement de Windows Update",
-                    "Fichiers de mises a jour deja installees. Services Windows Update arretes puis relances. Demande l'autorisation administrateur.",
+                    "Vider le cache de téléchargement de Windows Update",
+                    "Fichiers de mises à jour déjà installées. Services Windows Update arrêtés puis relancés. Demande l'autorisation administrateur.",
                     wu,
                     severity,
                     ActionRequest.Of(WindowsUpdateCacheClean)));
@@ -117,7 +117,7 @@ public sealed class WindowsMaintenanceModule : IResourceModule, IActionObserver
                 proposals.Add(new Proposal(
                     "windows-dism-cleanup",
                     "Nettoyer le magasin de composants Windows (DISM)",
-                    "Supprime les anciennes versions de composants Windows remplaces par des mises a jour. 10 a 40 min en arriere-plan. Demande l'autorisation administrateur.",
+                    "Supprime les anciennes versions de composants Windows remplacés par des mises à jour. 10 à 40 min en arrière-plan. Demande l'autorisation administrateur.",
                     2,
                     Severity.Info,
                     ActionRequest.Of(DismComponentCleanup)));
@@ -150,21 +150,21 @@ public sealed class WindowsMaintenanceModule : IResourceModule, IActionObserver
             RequiresAdmin: false,
             p => p.Count == 1 && p.TryGetValue("minutes", out var m) && int.TryParse(m, NumberStyles.None, CultureInfo.InvariantCulture, out var v) && v is >= 2 and <= 60
                 ? null
-                : "minutes doit etre un entier entre 2 et 60",
+                : "minutes doit être un entier entre 2 et 60",
             async (req, dryRun, ct) =>
             {
                 var minutes = int.Parse(req.Parameters["minutes"], CultureInfo.InvariantCulture);
                 if (dryRun)
                 {
-                    return new ActionOutcome(true, $"simulation : redemarrage dans {minutes} min");
+                    return new ActionOutcome(true, $"simulation : redémarrage dans {minutes} min");
                 }
 
                 var r = await _processes.RunAsync(
                     System32("shutdown.exe"),
-                    ["/r", "/t", (minutes * 60).ToString(CultureInfo.InvariantCulture), "/c", "Facil FreePC : redemarrage planifie (mise a jour Windows en attente). Annuler : shutdown /a"],
+                    ["/r", "/t", (minutes * 60).ToString(CultureInfo.InvariantCulture), "/c", "Facil FreePC : redémarrage planifié (mise à jour Windows en attente). Annuler : shutdown /a"],
                     TimeSpan.FromSeconds(30),
                     ct).ConfigureAwait(false);
-                return new ActionOutcome(r.ExitCode == 0, r.ExitCode == 0 ? $"Redemarrage dans {minutes} min (annuler : shutdown /a)" : $"shutdown a echoue (code {r.ExitCode}) {r.StdErr}".Trim());
+                return new ActionOutcome(r.ExitCode == 0, r.ExitCode == 0 ? $"Redémarrage dans {minutes} min (annuler : shutdown /a)" : $"shutdown a échoué (code {r.ExitCode}) {r.StdErr}".Trim());
             }));
 
         catalog.Register(new ActionDefinition(
@@ -175,7 +175,7 @@ public sealed class WindowsMaintenanceModule : IResourceModule, IActionObserver
             {
                 if (_rebootPending())
                 {
-                    return Task.FromResult(new ActionOutcome(false, "Redemarrage en attente : nettoyer le cache maintenant risquerait de casser la mise a jour"));
+                    return Task.FromResult(new ActionOutcome(false, "Redémarrage en attente : nettoyer le cache maintenant risquerait de casser la mise à jour"));
                 }
 
                 if (dryRun)
@@ -202,7 +202,7 @@ public sealed class WindowsMaintenanceModule : IResourceModule, IActionObserver
             {
                 if (_rebootPending())
                 {
-                    return new ActionOutcome(false, "Redemarrage en attente : DISM refuserait ou echouerait");
+                    return new ActionOutcome(false, "Redémarrage en attente : DISM refuserait ou échouerait");
                 }
 
                 if (dryRun)
@@ -211,7 +211,7 @@ public sealed class WindowsMaintenanceModule : IResourceModule, IActionObserver
                 }
 
                 var r = await _processes.RunAsync(System32("Dism.exe"), ["/Online", "/Cleanup-Image", "/StartComponentCleanup", "/English"], TimeSpan.FromMinutes(90), ct).ConfigureAwait(false);
-                return new ActionOutcome(r.ExitCode == 0, r.TimedOut ? "DISM : delai de 90 min depasse" : $"DISM termine (code {r.ExitCode})");
+                return new ActionOutcome(r.ExitCode == 0, r.TimedOut ? "DISM : délai de 90 min dépassé" : $"DISM terminé (code {r.ExitCode})");
             }));
     }
 

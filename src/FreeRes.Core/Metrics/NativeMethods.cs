@@ -42,7 +42,7 @@ internal static partial class NativeMethods
         var status = new MemoryStatusEx { Length = (uint)Marshal.SizeOf<MemoryStatusEx>() };
         if (!GlobalMemoryStatusEx(ref status))
         {
-            throw new InvalidOperationException($"GlobalMemoryStatusEx a echoue (erreur {Marshal.GetLastPInvokeError()})");
+            throw new InvalidOperationException($"GlobalMemoryStatusEx a échoué (erreur {Marshal.GetLastPInvokeError()})");
         }
 
         return status;

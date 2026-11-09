@@ -45,11 +45,11 @@ internal static class ElevatedMode
         var request = ElevatedActionProtocol.Decode(encoded);
         if (request is null)
         {
-            result = new ActionResult("?", false, "Requete d'action illisible", 0, false);
+            result = new ActionResult("?", false, "Requête d'action illisible", 0, false);
         }
         else if (!elevation.IsAdministrator)
         {
-            result = new ActionResult(request.Type, false, "Processus non eleve", 0, false);
+            result = new ActionResult(request.Type, false, "Processus non élevé", 0, false);
         }
         else
         {
@@ -70,7 +70,7 @@ internal static class ElevatedMode
             if (!catalog.Resolve(request).RequiresAdmin)
             {
                 // Moindre privilege : une action utilisateur ne s'execute jamais avec des droits eleves.
-                return new ActionResult(request.Type, false, "Action non administrateur refusee en mode eleve", 0, false);
+                return new ActionResult(request.Type, false, "Action non administrateur refusée en mode élevé", 0, false);
             }
 
             var dispatcher = new ActionDispatcher(catalog, elevation, WindowsSystemProbe.SystemDriveFreeGB, log);

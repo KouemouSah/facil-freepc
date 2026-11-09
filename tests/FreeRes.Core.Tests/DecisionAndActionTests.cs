@@ -78,7 +78,7 @@ public sealed class DecisionInboxTests : IDisposable
     public void Parametres_invalides_refuses()
     {
         var ex = Assert.Throws<ActionRejectedException>(() => _inbox.Propose(P("test-c", action: TestActions.Clean("abc"))));
-        Assert.Contains("days doit etre un entier", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("days doit être un entier", ex.Message, StringComparison.Ordinal);
     }
 
     [Theory]

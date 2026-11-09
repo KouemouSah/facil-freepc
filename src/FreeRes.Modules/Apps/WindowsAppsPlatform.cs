@@ -87,16 +87,16 @@ internal sealed partial class WindowsProcessControl : IProcessControl
         using var handle = OpenProcess(ProcessTerminate | ProcessQueryLimitedInformation, false, (uint)pid);
         if (handle.IsInvalid)
         {
-            return $"acces refuse ou processus termine (erreur {Marshal.GetLastPInvokeError()})";
+            return $"accès refusé ou processus terminé (erreur {Marshal.GetLastPInvokeError()})";
         }
 
         var image = QueryImage(handle);
         if (image is null || !string.Equals(image, expectedImagePath, StringComparison.OrdinalIgnoreCase))
         {
-            return "l'image du processus a change : arret annule";
+            return "l'image du processus a changé : arrêt annulé";
         }
 
-        return TerminateProcess(handle, 1) ? null : $"TerminateProcess a echoue (erreur {Marshal.GetLastPInvokeError()})";
+        return TerminateProcess(handle, 1) ? null : $"TerminateProcess a échoué (erreur {Marshal.GetLastPInvokeError()})";
     }
 
     private static int CurrentSession()
@@ -336,12 +336,12 @@ internal sealed class ComScheduledTasks : IScheduledTaskSource
         thread.Start();
         if (!thread.Join(timeout))
         {
-            throw new System.TimeoutException($"Planificateur de taches sans reponse apres {timeout.TotalSeconds} s");
+            throw new System.TimeoutException($"Planificateur de tâches sans réponse après {timeout.TotalSeconds} s");
         }
 
         if (error is not null)
         {
-            throw new InvalidOperationException("Lecture des taches planifiees impossible : " + error.Message, error);
+            throw new InvalidOperationException("Lecture des tâches planifiées impossible : " + error.Message, error);
         }
 
         return result ?? [];

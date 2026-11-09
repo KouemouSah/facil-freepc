@@ -61,18 +61,18 @@ public sealed partial record DockerOptions(
         {
             if (!(value > 0))
             {
-                errors.Add($"{name} doit etre > 0");
+                errors.Add($"{name} doit être > 0");
             }
         }
 
         if (!(VhdxMetadataOverheadGB >= 0))
         {
-            errors.Add("VhdxMetadataOverheadGB doit etre >= 0");
+            errors.Add("VhdxMetadataOverheadGB doit être >= 0");
         }
 
         if (WslShutdownSettleSeconds is < 0 or > 60)
         {
-            errors.Add("WslShutdownSettleSeconds doit etre entre 0 et 60");
+            errors.Add("WslShutdownSettleSeconds doit être entre 0 et 60");
         }
 
         return errors;

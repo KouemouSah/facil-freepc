@@ -136,7 +136,7 @@ public sealed class DiskModuleTests : IDisposable
         var catalog = new ActionCatalog();
         Module().RegisterActions(catalog);
         var ex = Assert.Throws<ActionRejectedException>(() => catalog.Resolve(new ActionRequest(DiskModule.CleanUserZone, new Dictionary<string, string> { ["rule"] = rule })));
-        Assert.Contains("reservee a l'administrateur", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("réservée à l'administrateur", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

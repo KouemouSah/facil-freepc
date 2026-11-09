@@ -30,7 +30,7 @@ public sealed class LocalWebHost : IAsyncDisposable
 
     /// <summary>
     /// Construit l'application. <paramref name="runtime"/> : moteur de surveillance (null = interface seule, tests de
-    /// securite) ; il est alors pilote par une boucle en arriere-plan. <paramref name="configure"/> sert aux tests.
+    /// securite) ; il est alors pilote par une boucle en arrière-plan. <paramref name="configure"/> sert aux tests.
     /// </summary>
     public static LocalWebHost Create(LocalWebHostOptions options, FreeResRuntime? runtime = null, Action<WebApplicationBuilder>? configure = null)
     {

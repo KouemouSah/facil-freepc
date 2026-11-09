@@ -251,7 +251,7 @@ public sealed partial class AppsModuleTests : IDisposable
     [InlineData("Falcon Sensor", "CrowdStrike, Inc.", @"C:\Program Files\CrowdStrike\c.exe", AppProtection.SecurityPrefix)]
     [InlineData("Sentinel Agent", "SentinelOne", @"C:\Program Files\SentinelOne\s.exe", AppProtection.SecurityPrefix)]
     [InlineData("Panda Dome", "Panda Security", @"C:\Program Files\Panda\p.exe", AppProtection.SecurityPrefix)]
-    [InlineData("F-Secure Elements", "F-Secure Corporation", @"C:\Program Files\F-Secure\f.exe", AppProtection.SecurityPrefix)]
+    [InlineData("F-Secure Éléments", "F-Secure Corporation", @"C:\Program Files\F-Secure\f.exe", AppProtection.SecurityPrefix)]
     [InlineData("G DATA Total Security", "G DATA CyberDefense AG", @"C:\Program Files\G DATA\g.exe", AppProtection.SecurityPrefix)]
     [InlineData("Webroot SecureAnywhere", "Webroot", @"C:\Program Files\Webroot\w.exe", AppProtection.SecurityPrefix)]
     [InlineData("Realtek Audio Console", "Realtek Semiconductor Corp.", @"C:\Program Files\Realtek\Audio\r.exe", AppProtection.DriverPrefix)]
@@ -260,7 +260,7 @@ public sealed partial class AppsModuleTests : IDisposable
     [InlineData("Intel® Arc™ Control", "Intel Corporation", @"C:\Program Files\Intel\Arc\a.exe", AppProtection.DriverPrefix)]
     [InlineData("Intel® Graphics Software", "Intel Corporation", @"C:\Program Files\Intel\Intel Graphics Software\i.exe", AppProtection.DriverPrefix)]
     [InlineData("NVIDIA App", "NVIDIA Corporation", @"C:\Program Files\NVIDIA Corporation\n.exe", AppProtection.DriverPrefix)]
-    [InlineData("AMD Software: Adrenalin Edition", "Advanced Micro Devices, Inc.", @"C:\Program Files\AMD\CNext\r.exe", AppProtection.DriverPrefix)]
+    [InlineData("AMD Software: Adrenalin Édition", "Advanced Micro Devices, Inc.", @"C:\Program Files\AMD\CNext\r.exe", AppProtection.DriverPrefix)]
     public void Chaque_categorie_protegee_est_refusee(string name, string publisher, string path, string expectedReasonStart)
     {
         var reason = new AppProtection(AppsWorld.Environment).Check(name, publisher, path);
@@ -301,7 +301,7 @@ public sealed partial class AppsModuleTests : IDisposable
 
         Assert.Empty(evaluation.Proposals);
         var ex = Assert.Throws<ActionRejectedException>(() => Catalog().Resolve(Req(AppsModule.DisableStartupItem, "id", item.Id)));
-        Assert.Contains("element protege : " + AppProtection.SecurityPrefix, ex.Message, StringComparison.Ordinal);
+        Assert.Contains("élément protégé : " + AppProtection.SecurityPrefix, ex.Message, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------- propositions
@@ -319,7 +319,7 @@ public sealed partial class AppsModuleTests : IDisposable
         Assert.Equal(Math.Round(300 * MB / 1073741824d, 2), p.EstGainGB);
         Assert.Equal(AppsModule.DisableStartupItem, p.Action.Type);
         Assert.Equal(item.Id, p.Action.Parameters["id"]);
-        Assert.StartsWith("Desactiver le demarrage automatique de Chat", p.Title, StringComparison.Ordinal);
+        Assert.StartsWith("Désactiver le démarrage automatique de Chat", p.Title, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -339,8 +339,8 @@ public sealed partial class AppsModuleTests : IDisposable
     [Theory]
     [InlineData(0, 200, 30, 20, "seuils de proposition")]
     [InlineData(200, -1, 30, 20, "seuils de proposition")]
-    [InlineData(200, 200, 0, 20, "rafraichissement")]
-    [InlineData(200, 200, 30, 0, "taches planifiees")]
+    [InlineData(200, 200, 0, 20, "rafraîchissement")]
+    [InlineData(200, 200, 30, 0, "tâches planifiées")]
     public void Configuration_incoherente_refusee_au_demarrage(double bgMB, double svcMB, double refreshMin, double tasksSec, string reason)
     {
         var ex = Assert.Throws<InvalidOperationException>(() => Module(new AppsOptions(bgMB, svcMB, refreshMin, tasksSec)));
@@ -425,7 +425,7 @@ public sealed partial class AppsModuleTests : IDisposable
     public async Task Inventaire_expose_apres_evaluation_et_taches_illisibles_signalees_sans_bloquer()
     {
         HeavyBackgroundChat();
-        _w.Tasks.Failure = new TimeoutException("Planificateur sans reponse");
+        _w.Tasks.Failure = new TimeoutException("Planificateur sans réponse");
         var m = Module();
         Assert.Null(m.LastInventory);
 
@@ -435,7 +435,7 @@ public sealed partial class AppsModuleTests : IDisposable
         Assert.Contains(inv.Apps, a => a.Name == "Chat");
         Assert.Contains(inv.StartupItems, i => i.Name == "Chat");
         Assert.Contains(inv.Usage, u => u.Name == "Chat" && u.Background);
-        Assert.Contains("Planificateur sans reponse", Assert.Single(inv.Warnings), StringComparison.Ordinal);
+        Assert.Contains("Planificateur sans réponse", Assert.Single(inv.Warnings), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public sealed partial class AppsModuleTests : IDisposable
     public void Demarrage_parametre_mal_forme_refuse(string key, string value)
     {
         var ex = Assert.Throws<ActionRejectedException>(() => Catalog().Resolve(Req(AppsModule.DisableStartupItem, key, value)));
-        Assert.Contains("id d'element de demarrage invalide", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("id d'élément de démarrage invalide", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -507,7 +507,7 @@ public sealed partial class AppsModuleTests : IDisposable
         var apps = Scan().Apps.ToDictionary(a => a.Name, a => a.Id);
         var catalog = Catalog();
 
-        Assert.Contains("application protegee : " + AppProtection.SecurityPrefix, Assert.Throws<ActionRejectedException>(() => catalog.Resolve(Req(AppsModule.StopAppProcesses, "appId", apps["Kaspersky"]))).Message, StringComparison.Ordinal);
+        Assert.Contains("application protégée : " + AppProtection.SecurityPrefix, Assert.Throws<ActionRejectedException>(() => catalog.Resolve(Req(AppsModule.StopAppProcesses, "appId", apps["Kaspersky"]))).Message, StringComparison.Ordinal);
         Assert.Contains("dossier de l'application inconnu ou trop large", Assert.Throws<ActionRejectedException>(() => catalog.Resolve(Req(AppsModule.StopAppProcesses, "appId", apps["Appli large"]))).Message, StringComparison.Ordinal);
     }
 
@@ -518,8 +518,8 @@ public sealed partial class AppsModuleTests : IDisposable
     [InlineData("service", "Inconnu", "service introuvable")]
     [InlineData("service", "WinSvc", "service Windows")]
     [InlineData("service", "Driver", "pilote ou service non Win32")]
-    [InlineData("service", "AvSvc", "service protege : " + AppProtection.SecurityPrefix)]
-    [InlineData("service", "Manual", "pas en demarrage automatique")]
+    [InlineData("service", "AvSvc", "service protégé : " + AppProtection.SecurityPrefix)]
+    [InlineData("service", "Manual", "pas en démarrage automatique")]
     public void Service_manuel_refuse_avec_la_raison_precise(string key, string value, string reason)
     {
         _w.Service("Indexer", @"C:\Program Files\Indexer\idx.exe");

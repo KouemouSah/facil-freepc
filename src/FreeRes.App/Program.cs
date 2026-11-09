@@ -52,7 +52,7 @@ internal static class Program
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException or InvalidOperationException)
         {
-            ShowFatal($"Demarrage impossible : {ex.Message}\n\nDonnees : {paths.DataDirectory}");
+            ShowFatal($"Démarrage impossible : {ex.Message}\n\nDonnées : {paths.DataDirectory}");
             return 3;
         }
 

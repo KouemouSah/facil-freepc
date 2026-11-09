@@ -13,7 +13,7 @@ namespace FreeRes.Modules.Apps;
 /// Applications installees et demarrage automatique.
 ///   * Inventaire (registre, dossiers Demarrage, services tiers, taches a l'ouverture de session) rafraichi toutes
 ///     les <see cref="AppsOptions.InventoryRefreshMinutes"/> min ; consommation des processus mesuree a chaque cycle.
-///   * Propositions : desactiver le demarrage d'une application d'arriere-plan gourmande ; sous pression memoire,
+///   * Propositions : desactiver le demarrage d'une application d'arrière-plan gourmande ; sous pression memoire,
 ///     arreter ses processus sans fenetre ; passer un service tiers gourmand en demarrage manuel (administrateur).
 ///   * Refus inconditionnel des composants Windows, logiciels de securite, pilotes et de Facil FreePC (<see cref="AppProtection"/>).
 ///
@@ -101,9 +101,9 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
             var machine = item.Scope == AppScope.Machine;
             proposals.Add(new Proposal(
                 "apps-disable-" + item.Id,
-                $"Desactiver le demarrage automatique de {Short(app.Name)}",
-                string.Create(CultureInfo.InvariantCulture, $"{Short(app.Name)} tourne en arriere-plan (aucune fenetre) et occupe {Mb(u.WorkingSetBytes)} MB. Il ne sera plus lance a l'ouverture de session ; l'entree « {Short(item.Name)} » est conservee et reactivable (meme mecanisme que le Gestionnaire des taches).")
-                    + (machine ? " Element commun a tous les utilisateurs : demande l'autorisation administrateur." : string.Empty),
+                $"Désactiver le démarrage automatique de {Short(app.Name)}",
+                string.Create(CultureInfo.InvariantCulture, $"{Short(app.Name)} tourne en arrière-plan (aucune fenêtre) et occupe {Mb(u.WorkingSetBytes)} MB. Il ne sera plus lancé à l'ouverture de session ; l'entrée « {Short(item.Name)} » est conservée et réactivable (même mécanisme que le Gestionnaire des tâches).")
+                    + (machine ? " Élément commun à tous les utilisateurs : demande l'autorisation administrateur." : string.Empty),
                 u.WorkingSetGB,
                 severity,
                 new ActionRequest(machine ? DisableMachineStartupItem : DisableStartupItem, new Dictionary<string, string> { ["id"] = item.Id })));
@@ -126,8 +126,8 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
                 var bytes = targets.Sum(p => p.WorkingSetBytes);
                 proposals.Add(new Proposal(
                     "apps-stop-" + app.Id,
-                    $"Arreter les processus d'arriere-plan de {Short(app.Name)}",
-                    string.Create(CultureInfo.InvariantCulture, $"Memoire sous pression. Arrete {targets.Count} processus sans fenetre de {Short(app.Name)} ({Mb(bytes)} MB), situes dans {app.Folder}. Les processus avec une fenetre ne sont pas touches ; une operation en cours dans ces processus serait interrompue."),
+                    $"Arrêter les processus d'arrière-plan de {Short(app.Name)}",
+                    string.Create(CultureInfo.InvariantCulture, $"Mémoire sous pression. Arrête {targets.Count} processus sans fenêtre de {Short(app.Name)} ({Mb(bytes)} MB), situés dans {app.Folder}. Les processus avec une fenêtre ne sont pas touchés ; une opération en cours dans ces processus serait interrompue."),
                     Math.Round(bytes / 1073741824d, 2),
                     Severity.Warn,
                     new ActionRequest(StopAppProcesses, new Dictionary<string, string> { ["appId"] = app.Id })));
@@ -145,8 +145,8 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
 
             proposals.Add(new Proposal(
                 "apps-manual-" + item.Id,
-                $"Passer le service {Short(item.Name)} en demarrage manuel",
-                string.Create(CultureInfo.InvariantCulture, $"Service tiers lance automatiquement au demarrage de Windows ; il occupe {Mb(su.WorkingSetBytes)} MB. En demarrage manuel, il ne sera lance qu'a la demande (par son application ou par Windows). Le service en cours n'est pas arrete : effet au prochain demarrage. Demande l'autorisation administrateur."),
+                $"Passer le service {Short(item.Name)} en démarrage manuel",
+                string.Create(CultureInfo.InvariantCulture, $"Service tiers lancé automatiquement au démarrage de Windows ; il occupe {Mb(su.WorkingSetBytes)} MB. En démarrage manuel, il ne sera lancé qu'à la demande (par son application ou par Windows). Le service en cours n'est pas arrêté : effet au prochain démarrage. Demande l'autorisation administrateur."),
                 Math.Round(su.WorkingSetBytes / 1073741824d, 2),
                 severity,
                 new ActionRequest(SetServiceManual, new Dictionary<string, string> { ["service"] = item.ServiceName! })));
@@ -190,7 +190,7 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
                 var targets = StopTargets(app!, _platform.Processes.Snapshot());
                 if (targets.Count == 0)
                 {
-                    return Task.FromResult(new ActionOutcome(true, $"{app!.Name} : aucun processus d'arriere-plan a arreter"));
+                    return Task.FromResult(new ActionOutcome(true, $"{app!.Name} : aucun processus d'arrière-plan à arrêter"));
                 }
 
                 var bytes = targets.Sum(p => p.WorkingSetBytes);
@@ -213,8 +213,8 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
                     }
                 }
 
-                var message = string.Create(CultureInfo.InvariantCulture, $"{app!.Name} : {targets.Count - failures.Count}/{targets.Count} processus arretes, {Mb(freed)} MB");
-                return Task.FromResult(new ActionOutcome(failures.Count == 0, failures.Count == 0 ? message : message + " ; echecs : " + string.Join(", ", failures)));
+                var message = string.Create(CultureInfo.InvariantCulture, $"{app!.Name} : {targets.Count - failures.Count}/{targets.Count} processus arrêtés, {Mb(freed)} MB");
+                return Task.FromResult(new ActionOutcome(failures.Count == 0, failures.Count == 0 ? message : message + " ; échecs : " + string.Join(", ", failures)));
             }));
 
         catalog.Register(new ActionDefinition(
@@ -230,7 +230,7 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
 
                 if (dryRun)
                 {
-                    return new ActionOutcome(true, $"simulation : service {service!.Name} en demarrage manuel");
+                    return new ActionOutcome(true, $"simulation : service {service!.Name} en démarrage manuel");
                 }
 
                 var r = await _runner.RunAsync(
@@ -241,8 +241,8 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
                 return new ActionOutcome(
                     r.ExitCode == 0,
                     r.ExitCode == 0
-                        ? $"Service {service.DisplayName} en demarrage manuel (effet au prochain demarrage)"
-                        : $"sc.exe a echoue (code {r.ExitCode}) {r.StdOut} {r.StdErr}".Trim());
+                        ? $"Service {service.DisplayName} en démarrage manuel (effet au prochain démarrage)"
+                        : $"sc.exe a échoué (code {r.ExitCode}) {r.StdOut} {r.StdErr}".Trim());
             }));
     }
 
@@ -293,7 +293,7 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
                 var verb = enable ? "reactive" : "desactive";
                 if (dryRun)
                 {
-                    return Task.FromResult(new ActionOutcome(true, $"simulation : demarrage automatique {verb} pour {item!.Name}"));
+                    return Task.FromResult(new ActionOutcome(true, $"simulation : démarrage automatique {verb} pour {item!.Name}"));
                 }
 
                 _platform.Registry.SetBinary(
@@ -302,34 +302,34 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
                     StartupApproved.RootPath + "\\" + item!.ApprovedSubKey,
                     item.Name,
                     StartupApproved.Encode(enable, _time.GetUtcNow()));
-                return Task.FromResult(new ActionOutcome(true, $"Demarrage automatique {verb} : {item.Name} (entree conservee, reversible)"));
+                return Task.FromResult(new ActionOutcome(true, $"Démarrage automatique {verb} : {item.Name} (entrée conservée, réversible)"));
             }));
 
-    /// <summary>Validation stricte (relecture du registre) : element Run/dossier Demarrage existant, de la bonne portee, non protege.</summary>
+    /// <summary>Validation stricte (relecture du registre) : element Run/dossier Demarrage existant, de la bonne portee, non protégé.</summary>
     private string? FindStartupItem(IReadOnlyDictionary<string, string> p, AppScope scope, out StartupItem? item)
     {
         item = null;
         if (p.Count != 1 || !p.TryGetValue("id", out var id) || !StartupIdPattern().IsMatch(id))
         {
-            return "id d'element de demarrage invalide";
+            return "id d'élément de démarrage invalide";
         }
 
         var found = _scanner.Scan(includeServicesAndTasks: false, TimeSpan.Zero).Items.FirstOrDefault(i => i.Id == id);
         if (found is null || found.ApprovedSubKey is null)
         {
-            return "element de demarrage introuvable";
+            return "élément de démarrage introuvable";
         }
 
         if (found.Scope != scope)
         {
             return found.Scope == AppScope.Machine
-                ? "element commun a tous les utilisateurs : action administrateur requise"
-                : "element de l'utilisateur : action utilisateur requise";
+                ? "élément commun à tous les utilisateurs : action administrateur requise"
+                : "élément de l'utilisateur : action utilisateur requise";
         }
 
         if (found.Protection is not null)
         {
-            return "element protege : " + found.Protection;
+            return "élément protégé : " + found.Protection;
         }
 
         item = found;
@@ -352,7 +352,7 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
 
         if (found.Protection is not null)
         {
-            return "application protegee : " + found.Protection;
+            return "application protégée : " + found.Protection;
         }
 
         if (found.Folder is null)
@@ -385,7 +385,7 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver, IStat
 
         if (found.Start != AppsScanner.ServiceAutoStart)
         {
-            return "le service n'est pas en demarrage automatique";
+            return "le service n'est pas en démarrage automatique";
         }
 
         service = found;

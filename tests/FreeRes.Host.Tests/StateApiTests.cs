@@ -28,7 +28,7 @@ internal sealed class OneProposalModule : IResourceModule
 
     public Task<ModuleEvaluation> EvaluateAsync(EngineContext context, CancellationToken cancellationToken) =>
         Task.FromResult(new ModuleEvaluation(
-            [new Proposal("test-cache", "Vider le cache de test", "Detail <b>non interprete</b>", 1.25, Severity.Warn, ActionRequest.Of("TestNoop"))],
+            [new Proposal("test-cache", "Vider le cache de test", "Détail <b>non interprete</b>", 1.25, Severity.Warn, ActionRequest.Of("TestNoop"))],
             []));
 }
 
@@ -97,7 +97,7 @@ public sealed class StateApiTests : IAsyncLifetime
         var pending = root.GetProperty("pending")[0];
         Assert.Equal("test-cache", pending.GetProperty("id").GetString());
         Assert.Equal("Warn", pending.GetProperty("severity").GetString());          // enum en texte, pas en nombre
-        Assert.Equal("Detail <b>non interprete</b>", pending.GetProperty("detail").GetString());
+        Assert.Equal("Détail <b>non interprete</b>", pending.GetProperty("detail").GetString());
         Assert.Equal("Toast", root.GetProperty("lastCycle").GetProperty("escalation").GetString());
     }
 

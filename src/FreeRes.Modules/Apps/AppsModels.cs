@@ -118,17 +118,17 @@ public sealed record AppsOptions(
         var errors = new List<string>();
         if (BackgroundProposeMB is <= 0 or double.NaN || ServiceProposeMB is <= 0 or double.NaN)
         {
-            errors.Add("Les seuils de proposition (MB) doivent etre positifs.");
+            errors.Add("Les seuils de proposition (MB) doivent être positifs.");
         }
 
         if (InventoryRefreshMinutes is < 1 or > 1440 or double.NaN)
         {
-            errors.Add("Le rafraichissement de l'inventaire doit etre compris entre 1 et 1440 min.");
+            errors.Add("Le rafraîchissement de l'inventaire doit être compris entre 1 et 1440 min.");
         }
 
         if (ScheduledTasksTimeoutSeconds is < 1 or > 300 or double.NaN)
         {
-            errors.Add("Le delai de lecture des taches planifiees doit etre compris entre 1 et 300 s.");
+            errors.Add("Le délai de lecture des tâches planifiées doit être compris entre 1 et 300 s.");
         }
 
         return errors;

@@ -21,7 +21,7 @@ namespace FreeRes.Modules.Docker;
 ///   * AUTOMATIQUE : arret de la VM docker-desktop restee allumee sans Docker Desktop (2 observations a 10 min
 ///     d'ecart), fstrim quotidien et mesure toutes les 6 h quand Docker tourne ;
 ///   * PROPOSITIONS : purge du cache de build, des images inutilisees (JAMAIS les volumes), compactage du VHDX
-///     (Docker arrete) selon l'espace mort REEL (VHDX - donnees - plancher), repli sur la taille si jamais mesure.
+///     (Docker arrêté) selon l'espace mort REEL (VHDX - donnees - plancher), repli sur la taille si jamais mesure.
 /// Module inactif si Docker Desktop n'est pas installe.
 /// </summary>
 public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSource
@@ -198,18 +198,18 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
     {
         if (p.Count != 1 || !p.TryGetValue("level", out var level))
         {
-            return "un seul parametre « level » attendu";
+            return "un seul paramètre « level » attendu";
         }
 
         return PruneLevels.Contains(level, StringComparer.Ordinal)
             ? null
-            : $"niveau non autorise : '{level}' (builder, unused-images ou dangling ; les volumes ne sont JAMAIS purges)";
+            : $"niveau non autorisé : '{level}' (builder, unused-images ou dangling ; les volumes ne sont JAMAIS purgés)";
     }
 
     private string? ValidateTerminate(IReadOnlyDictionary<string, string> p) =>
         p.Count == 1 && p.TryGetValue("distro", out var d) && string.Equals(d, _options.WslDistro, StringComparison.Ordinal)
             ? null
-            : $"distribution non autorisee (seule '{_options.WslDistro}' peut etre arretee)";
+            : $"distribution non autorisée (seule '{_options.WslDistro}' peut être arrêtée)";
 
     // ------------------------------------------------------------------ evaluation
 
@@ -308,7 +308,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
         _log.Write(
             LogLevel.Info,
             Name,
-            string.Create(CultureInfo.InvariantCulture, $"Disque Docker : VHDX {Show(usage.VhdxGB)} GB, donnees {usage.InsideUsedGB} GB (images {Show(usage.ImagesGB)}, conteneurs {Show(usage.ContainersGB)}, volumes {Show(usage.VolumesGB)}, cache build {Show(usage.BuildCacheGB)})"));
+            string.Create(CultureInfo.InvariantCulture, $"Disque Docker : VHDX {Show(usage.VhdxGB)} GB, données {usage.InsideUsedGB} GB (images {Show(usage.ImagesGB)}, conteneurs {Show(usage.ContainersGB)}, volumes {Show(usage.VolumesGB)}, cache build {Show(usage.BuildCacheGB)})"));
         return usage;
     }
 
@@ -319,7 +319,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
             proposals.Add(new Proposal(
                 "docker-builder",
                 string.Create(CultureInfo.InvariantCulture, $"Purger le cache de build Docker (> {_options.BuilderPruneUntilHours / 24} jours)"),
-                "Les volumes ne sont JAMAIS touches. Le fstrim suivant rendra la place au disque Docker.",
+                "Les volumes ne sont JAMAIS touchés. Le fstrim suivant rendra la place au disque Docker.",
                 build,
                 severity,
                 new ActionRequest(DockerPrune, new Dictionary<string, string> { ["level"] = "builder" })));
@@ -329,8 +329,8 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
         {
             proposals.Add(new Proposal(
                 "docker-images",
-                string.Create(CultureInfo.InvariantCulture, $"Supprimer les images Docker inutilisees depuis {_options.UnusedImagesUntilHours / 24} jours"),
-                "Elles seront re-telechargees si un compose les reclame. Volumes intacts.",
+                string.Create(CultureInfo.InvariantCulture, $"Supprimer les images Docker inutilisées depuis {_options.UnusedImagesUntilHours / 24} jours"),
+                "Elles seront re-téléchargées si un compose les réclame. Volumes intacts.",
                 images,
                 severity,
                 new ActionRequest(DockerPrune, new Dictionary<string, string> { ["level"] = "unused-images" })));
@@ -361,7 +361,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
                 proposals.Add(new Proposal(
                     "docker-vhdx",
                     string.Create(CultureInfo.InvariantCulture, $"Compacter le disque Docker ({vhdx} GB, ~{slack} GB d'espace mort)"),
-                    string.Create(CultureInfo.InvariantCulture, $"Donnees reelles {usage.InsideUsedGB} GB + plancher ext4 ~{_options.VhdxMetadataOverheadGB} GB. Compactage diskpart, Docker arrete (WSL est arrete pendant l'operation). Demande l'autorisation administrateur."),
+                    string.Create(CultureInfo.InvariantCulture, $"Données réelles {usage.InsideUsedGB} GB + plancher ext4 ~{_options.VhdxMetadataOverheadGB} GB. Compactage diskpart, Docker arrêté (WSL est arrêté pendant l'opération). Demande l'autorisation administrateur."),
                     slack,
                     severity,
                     ActionRequest.Of(CompactDockerVhdx)));
@@ -373,7 +373,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
             proposals.Add(new Proposal(
                 "docker-vhdx",
                 string.Create(CultureInfo.InvariantCulture, $"Compacter le disque Docker ({vhdx} GB, gain non mesure)"),
-                "Aucune mesure interne encore : demarrez Docker une fois pour mesurer et trimer. Compactage diskpart, Docker arrete. Demande l'autorisation administrateur.",
+                "Aucune mesure interne encore : démarrez Docker une fois pour mesurer et trimer. Compactage diskpart, Docker arrêté. Demande l'autorisation administrateur.",
                 Math.Round(vhdx * 0.25, 2),
                 severity,
                 ActionRequest.Of(CompactDockerVhdx)));
@@ -389,7 +389,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
             "builder" => ["builder", "prune", "-f", "--filter", string.Create(CultureInfo.InvariantCulture, $"until={_options.BuilderPruneUntilHours}h")],
             "unused-images" => ["image", "prune", "-a", "-f", "--filter", string.Create(CultureInfo.InvariantCulture, $"until={_options.UnusedImagesUntilHours}h")],
             "dangling" => ["image", "prune", "-f"],
-            var other => throw new ActionRejectedException($"Niveau DockerPrune non autorise : {other}"),   // deja refuse par la validation
+            var other => throw new ActionRejectedException($"Niveau DockerPrune non autorisé : {other}"),   // deja refuse par la validation
         };
 
         if (_host.DockerCli is not { } cli)
@@ -410,8 +410,8 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
         var r = await _processes.RunAsync(cli, args, TimeSpan.FromMinutes(15), ct).ConfigureAwait(false);
         var tail = string.Join(' ', r.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).TakeLast(2));
         return r.TimedOut
-            ? new ActionOutcome(false, "docker prune : delai de 15 min depasse")
-            : new ActionOutcome(r.ExitCode == 0, r.ExitCode == 0 ? tail : $"docker prune a echoue (code {r.ExitCode}) {r.StdErr}".Trim());
+            ? new ActionOutcome(false, "docker prune : délai de 15 min dépassé")
+            : new ActionOutcome(r.ExitCode == 0, r.ExitCode == 0 ? tail : $"docker prune a échoué (code {r.ExitCode}) {r.StdErr}".Trim());
     }
 
     /// <summary>fstrim : signale au VHDX les blocs liberes (montage sans « discard »). Sur, en ligne, sans perte.</summary>
@@ -419,7 +419,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
     {
         if (!_host.IsDockerRunning())
         {
-            return new ActionOutcome(false, "Docker Desktop ne tourne pas (disque de donnees non monte)");
+            return new ActionOutcome(false, "Docker Desktop ne tourne pas (disque de données non monté)");
         }
 
         if (_host.WslExe is not { } wsl)
@@ -434,7 +434,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
 
         var r = await _processes.RunAsync(wsl, ["-d", _options.WslDistro, "-u", "root", "--", "fstrim", _options.DataMount], TimeSpan.FromMinutes(10), ct).ConfigureAwait(false);
         return r.TimedOut
-            ? new ActionOutcome(false, "fstrim : delai de 10 min depasse")
+            ? new ActionOutcome(false, "fstrim : délai de 10 min dépassé")
             : new ActionOutcome(r.ExitCode == 0, $"fstrim {_options.DataMount} (code {r.ExitCode}) {r.StdErr}".Trim());
     }
 
@@ -458,18 +458,18 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
         }
 
         var r = await _processes.RunAsync(wsl, ["--terminate", distro], TimeSpan.FromSeconds(60), ct).ConfigureAwait(false);
-        return new ActionOutcome(r.ExitCode == 0 && !r.TimedOut, $"VM {distro} orpheline arretee (code {r.ExitCode})");
+        return new ActionOutcome(r.ExitCode == 0 && !r.TimedOut, $"VM {distro} orpheline arrêtée (code {r.ExitCode})");
     }
 
     /// <summary>
     /// Compactage par diskpart (present sur tout Windows, contrairement a Optimize-VHD qui exige le module Hyper-V).
-    /// Uniquement le VHDX DETECTE (jamais un chemin recu en parametre), Docker arrete, WSL arrete avant.
+    /// Uniquement le VHDX DETECTE (jamais un chemin recu en parametre), Docker arrêté, WSL arrete avant.
     /// </summary>
     private async Task<ActionOutcome> ExecuteCompactAsync(bool dryRun, CancellationToken ct)
     {
         if (_host.IsDockerRunning())
         {
-            return new ActionOutcome(false, "Docker Desktop tourne : arretez-le avant le compactage");
+            return new ActionOutcome(false, "Docker Desktop tourne : arrêtez-le avant le compactage");
         }
 
         if (_host.DetectVhdx() is not { } vhdx)
@@ -479,7 +479,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
 
         if (!IsScriptSafe(vhdx))
         {
-            return new ActionOutcome(false, $"Chemin du VHDX non pris en charge par diskpart (caracteres non ASCII ou guillemets) : {vhdx}");
+            return new ActionOutcome(false, $"Chemin du VHDX non pris en charge par diskpart (caractères non ASCII ou guillemets) : {vhdx}");
         }
 
         var before = _host.FileBytes(vhdx) ?? 0;
@@ -493,7 +493,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
             var shutdown = await _processes.RunAsync(wsl, ["--shutdown"], TimeSpan.FromMinutes(2), ct).ConfigureAwait(false);
             if (shutdown.TimedOut || shutdown.ExitCode != 0)
             {
-                return new ActionOutcome(false, $"wsl --shutdown a echoue (code {shutdown.ExitCode}) : VHDX peut-etre encore utilise, compactage annule");
+                return new ActionOutcome(false, $"wsl --shutdown a échoué (code {shutdown.ExitCode}) : VHDX peut-être encore utilisé, compactage annulé");
             }
 
             if (_options.WslShutdownSettleSeconds > 0)
@@ -504,7 +504,7 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
 
         if (_host.IsDockerRunning())
         {
-            return new ActionOutcome(false, "Docker Desktop a redemarre pendant la preparation : compactage annule");
+            return new ActionOutcome(false, "Docker Desktop a redémarré pendant la préparation : compactage annulé");
         }
 
         var diskpart = Path.Combine(Environment.SystemDirectory, "diskpart.exe");
@@ -514,8 +514,8 @@ public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSour
             // Ne jamais laisser le VHDX attache : Docker ne pourrait plus demarrer.
             var detach = await RunDiskpartAsync(diskpart, DiskpartDetachScript(vhdx), TimeSpan.FromMinutes(2), ct).ConfigureAwait(false);
             return new ActionOutcome(false, compact.TimedOut
-                ? $"diskpart : delai de 60 min depasse (detachement de secours : code {detach.ExitCode})"
-                : $"diskpart a echoue (code {compact.ExitCode}, detachement de secours : code {detach.ExitCode})");
+                ? $"diskpart : délai de 60 min dépassé (détachement de secours : code {detach.ExitCode})"
+                : $"diskpart a échoué (code {compact.ExitCode}, détachement de secours : code {detach.ExitCode})");
         }
 
         var after = _host.FileBytes(vhdx) ?? before;
