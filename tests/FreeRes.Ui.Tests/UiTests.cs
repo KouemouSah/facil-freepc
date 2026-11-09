@@ -8,6 +8,7 @@ using FreeRes.Modules.Ai;
 using FreeRes.Modules.Apps;
 using FreeRes.Modules.Browsers;
 using FreeRes.Modules.Docker;
+using FreeRes.Modules.Updates;
 using Microsoft.Playwright;
 
 namespace FreeRes.Ui.Tests;
@@ -45,6 +46,18 @@ internal sealed class StatusOf(string name, object status, IReadOnlyDictionary<s
     public object? CurrentStatus => status;
 
     public string? IconPath(string id) => icons?.GetValueOrDefault(id);
+
+    public Task<ModuleEvaluation> EvaluateAsync(EngineContext context, CancellationToken cancellationToken) => Task.FromResult(ModuleEvaluation.Empty);
+}
+
+/// <summary>Mises a jour simulees : etat expose et verification a la demande.</summary>
+internal sealed class UiUpdates : IResourceModule, IStatusSource, IUpdateCheck
+{
+    public string Name => "updates";
+
+    public object? CurrentStatus => new UpdateStatus("0.6.0", true, DateTimeOffset.Now.AddDays(-2), null, null, null);
+
+    public Task<string> CheckNowAsync(CancellationToken cancellationToken) => Task.FromResult("Facil FreePC est à jour (version 0.6.0).");
 
     public Task<ModuleEvaluation> EvaluateAsync(EngineContext context, CancellationToken cancellationToken) => Task.FromResult(ModuleEvaluation.Empty);
 }
@@ -126,7 +139,7 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
             new AppPaths(_dir),
             new StaticProbe(),
             _ => new ModuleSetup(
-                [new UiModules(), new StatusOf("apps", apps), new StatusOf("browsers", browsers, new Dictionary<string, string> { ["firefox"] = Path.Combine(Environment.SystemDirectory, "notepad.exe") }), new StatusOf("ai", ai), new StatusOf("docker", docker)],
+                [new UiModules(), new StatusOf("apps", apps), new StatusOf("browsers", browsers, new Dictionary<string, string> { ["firefox"] = Path.Combine(Environment.SystemDirectory, "notepad.exe") }), new StatusOf("ai", ai), new StatusOf("docker", docker), new UiUpdates()],
                 c =>
                 {
                     c.Register(new ActionDefinition("UiCount", false, _ => null, (_, _, _) =>
@@ -465,6 +478,9 @@ public sealed class UiTests(UiFixture fx) : IClassFixture<UiFixture>, IAsyncLife
         await Assertions.Expect(stage).ToHaveAttributeAsync("data-scene", "1");
         await Assertions.Expect(play).ToHaveTextAsync("Pause");
         await Assertions.Expect(_page.Locator("[data-snooze]")).ToHaveTextAsync("24 h");   // duree reelle des reglages
+        await Assertions.Expect(_page.Locator("#upd-status")).ToContainTextAsync("Mises à jour lues chaque semaine sur GitHub (dernière le");
+        await _page.ClickAsync("#upd-check");
+        await Assertions.Expect(_page.Locator("#upd-status")).ToHaveTextAsync("Facil FreePC est à jour (version 0.6.0).");
 
         // A la taille reelle, chaque chapitre ouvert tient entier dans sa colonne (aucun defilement interne).
         for (var scene = 1; scene <= 4; scene++)

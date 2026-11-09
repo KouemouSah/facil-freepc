@@ -1,11 +1,13 @@
-# Publication : sur tag vX.Y.Z -> meme sequence que build.ps1 (tests, extension Firefox signee par Mozilla,
-# exe unique, installeur Inno Setup, SHA-256) puis Release GitHub. PREPARE, NON ACTIVE (Actions desactive).
-# Secrets requis : AMO_JWT_ISSUER et AMO_JWT_SECRET (cles API addons.mozilla.org) pour signer l'extension.
+# Publication : sur tag vX.Y.Z -> build.ps1 (tests, extension Firefox, exe unique, installeur Inno Setup, SHA-256,
+# manifeste de mise a jour SIGNE) -> essai d'installation/desinstallation silencieuses -> Release GitHub.
+# Secrets : UPDATE_SIGNING_KEY (cle privee des mises a jour, PKCS#8 base64 : tools/FreeRes.UpdateSign export-ci) ;
+# AMO_JWT_ISSUER et AMO_JWT_SECRET (cles addons.mozilla.org, signature de l'extension ; optionnels).
 name: release
 
 on:
   push:
     tags: ['v*.*.*']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,7 +15,7 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -23,8 +25,14 @@ jobs:
         with:
           node-version: '20'
       - name: Inno Setup
-        run: choco install innosetup --no-progress -y
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          $iscc = Get-ChildItem 'C:\Program Files*\Inno Setup*\ISCC.exe' | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $iscc) { throw 'ISCC.exe introuvable apres installation' }
+          "INNO_ISCC=$($iscc.FullName)" >> $env:GITHUB_ENV
       - name: Version du tag = version du projet
+        if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         run: |
           [xml]$p = Get-Content Directory.Build.props -Raw
@@ -35,11 +43,30 @@ jobs:
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
         run: ./build.ps1
+      - name: Manifeste signe obligatoire pour publier
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: if (-not (Test-Path artifacts/latest.json.sig)) { throw 'latest.json non signe : secret UPDATE_SIGNING_KEY absent' }
+      - name: Essai d'installation et de desinstallation silencieuses
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem artifacts/FacilFreePC-Setup-*.exe | Select-Object -First 1
+          ./tools/Test-Installer.ps1 -Setup $setup.FullName -Report artifacts/test-installer.log
+      - name: Compte rendu de l'essai
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-installer
+          path: artifacts/test-installer.log
       - name: Release GitHub
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             artifacts/FacilFreePC-Setup-*.exe
             artifacts/FacilFreePC-Setup-*.exe.sha256
+            artifacts/latest.json
+            artifacts/latest.json.sig
           fail_on_unmatched_files: true

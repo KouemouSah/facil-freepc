@@ -17,6 +17,9 @@ namespace FreeRes.Host;
 /// <summary>Proposition telle qu'exposee a l'interface.</summary>
 public sealed record PendingDto(string Id, string Title, string Detail, Severity Severity, double EstGainGB, bool RequiresAdmin, DateTimeOffset CreatedAt);
 
+/// <summary>Resultat d'une verification de mise a jour demandee par l'utilisateur.</summary>
+public sealed record UpdateCheckResponse(string Message);
+
 /// <summary>Dernier cycle de surveillance.</summary>
 public sealed record CycleDto(DateTimeOffset At, int NewProposals, int PendingCount, EscalationMode Escalation, IReadOnlyList<string> Errors);
 
@@ -96,6 +99,24 @@ internal static partial class StateApi
 
         app.MapPost("/api/proposals/{id}/snooze", (string id) => Decide(runtime, id, e => e.Snooze(id)));
         app.MapPost("/api/proposals/{id}/reject", (string id) => Decide(runtime, id, e => e.Reject(id)));
+
+        // Verification de mise a jour demandee par l'utilisateur, puis un cycle : la decision apparait aussitot.
+        app.MapPost("/api/updates/check", async (IHostApplicationLifetime life) =>
+        {
+            if (runtime is null)
+            {
+                return NotStarted();
+            }
+
+            if (runtime.Engine.UpdateCheck is not { } check)
+            {
+                return Results.NotFound("mises à jour indisponibles");
+            }
+
+            var message = await check.CheckNowAsync(life.ApplicationStopping).ConfigureAwait(false);
+            await runtime.Engine.RunCycleAsync(life.ApplicationStopping).ConfigureAwait(false);
+            return Results.Ok(new UpdateCheckResponse(message));
+        });
 
         app.MapPost("/api/cycle", async (IHostApplicationLifetime life) =>
         {

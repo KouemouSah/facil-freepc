@@ -2,6 +2,7 @@ using FreeRes.Core.Actions;
 using FreeRes.Core.Logging;
 using FreeRes.Core.Metrics;
 using FreeRes.Core.Platform;
+using FreeRes.Core.Policy;
 using FreeRes.Core.Storage;
 
 namespace FreeRes.Core.Engine;
@@ -17,7 +18,8 @@ public sealed record ModuleServices(
     ISystemProbe Probe,
     IProcessRunner Processes,
     IStateStore? State,
-    IProcessLauncher? Launcher = null)
+    IProcessLauncher? Launcher = null,
+    AppSettings? Settings = null)
 {
     /// <summary>Lanceur detache (relance d'un navigateur...) ; implementation reelle par defaut.</summary>
     public IProcessLauncher EffectiveLauncher => Launcher ?? new ProcessLauncher();

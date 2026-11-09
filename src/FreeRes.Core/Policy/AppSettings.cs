@@ -12,6 +12,9 @@ public sealed record NotificationSettings(
 /// <summary>Durees de conservation des donnees locales.</summary>
 public sealed record RetentionSettings(int HistoryDays = 180, int LogDays = 60, int DecisionsDays = 30);
 
+/// <summary>Mises a jour : verification hebdomadaire signee (lecture seule sur GitHub), desactivable.</summary>
+public sealed record UpdateSettings(bool WeeklyCheck = true);
+
 /// <summary>
 /// Reglages utilisateur (%LOCALAPPDATA%\FacilFreePC\settings.json). Tout est facultatif : sans fichier,
 /// les valeurs par defaut et les seuils calcules pour la machine s'appliquent.
@@ -31,6 +34,8 @@ public sealed record AppSettings
     public NotificationSettings Notification { get; init; } = new();
 
     public RetentionSettings Retention { get; init; } = new();
+
+    public UpdateSettings Updates { get; init; } = new();
 
     public IReadOnlyList<string> Validate()
     {

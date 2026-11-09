@@ -31,6 +31,7 @@ public static class ActionLabels
         ["RestartBrowser"] = "Navigateur redémarré",
         ["InstallFirefoxExtension"] = "Installation de l'extension Firefox",
         ["UnloadOllamaModel"] = "Modèle Ollama déchargé",
+        ["InstallUpdate"] = "Mise à jour de Facil FreePC",
         ["OpenModelsFolder"] = "Dossier des modèles ouvert",
     }.ToFrozenDictionary(StringComparer.Ordinal);
 

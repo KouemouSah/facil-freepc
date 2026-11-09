@@ -117,7 +117,7 @@ function showView(name) {
   if (location.hash !== "#" + name) { history.replaceState(null, "", "#" + name); }
   clearInterval(moduleTimer);
   moduleTimer = null;
-  if (name === "help") { startTour(); } else { tour.root.classList.add("paused"); }
+  if (name === "help") { startTour(); loadUpdates(); } else { tour.root.classList.add("paused"); }
   const loaders = { apps: loadApps, browsers: loadBrowsers, ai: loadAi, docker: loadDocker, history: loadHistory };
   if (loaders[name]) {
     loaders[name]();
@@ -459,6 +459,36 @@ tour.chapters.addEventListener("click", e => {
 tour.play.addEventListener("click", () => {
   if (tour.ended) { startTour(); return; }
   tourState(tour.root.classList.contains("paused"));
+});
+
+// ------------------------------------------------------------------ mises a jour
+function updateText(u) {
+  const mode = u.weeklyCheck ? "Mises à jour lues chaque semaine sur GitHub" : "Vérification hebdomadaire des mises à jour désactivée";
+  const last = u.checkedAt ? " (dernière le " + dayTime(u.checkedAt) + ")" : "";
+  const available = u.available ? ". Version " + u.available + " disponible : voir les décisions" : "";
+  return mode + last + available + ".";
+}
+
+async function loadUpdates() {
+  try {
+    const u = await module("updates");
+    if (u) { el("upd-status").textContent = updateText(u); }
+  } catch { /* l'etat des mises a jour n'est qu'informatif */ }
+}
+
+el("upd-check").addEventListener("click", async () => {
+  const b = el("upd-check");
+  b.disabled = true;
+  el("upd-status").textContent = "Vérification en cours…";
+  try {
+    const r = await post("/api/updates/check");
+    el("upd-status").textContent = r.status === 200 ? r.body.message : "Mises à jour indisponibles.";
+  } catch (err) {
+    el("upd-status").textContent = "Vérification impossible (" + err.message + ").";
+  } finally {
+    b.disabled = false;
+    await refresh();
+  }
 });
 
 // ------------------------------------------------------------------ historique

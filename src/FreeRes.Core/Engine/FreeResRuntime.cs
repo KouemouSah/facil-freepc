@@ -85,7 +85,7 @@ public sealed class FreeResRuntime : IDisposable
         try
         {
             var catalog = new ActionCatalog();
-            var setup = modules?.Invoke(new ModuleServices(paths, log, time, probe, processes, db)) ?? ModuleSetup.None;
+            var setup = modules?.Invoke(new ModuleServices(paths, log, time, probe, processes, db, Settings: settings)) ?? ModuleSetup.None;
             setup.RegisterActions(catalog);
             var queue = new DecisionInbox(db, catalog, time, log);
             // Gain disque mesure avant/apres chaque action : lecture directe du volume (pas une capture complete).

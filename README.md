@@ -125,11 +125,13 @@ infobulle conservés).
 | **3 — Navigateurs** | Détection de Firefox, Chrome, Edge, Brave, Opera et Vivaldi ; mise en veille automatique des onglets inactifs ; redémarrage propre du navigateur sur votre clic, avec contrôle de la restauration de session | En cours : module livré, extension Firefox prête (signature Mozilla en attente) |
 | **4 — IA** | Détection des applications d'IA, modèles chargés, mémoire vidéo et disque ; proposition de décharger un modèle Ollama sous tension mémoire, d'ouvrir le dossier des modèles quand le disque est plein (jamais de suppression, jamais d'arrêt du serveur) | Module livré ; essai réel avec Ollama en attente |
 | **5 — Interface** | Tableau de bord sans défilement (santé, décisions, actions faites, applications, navigateurs, IA, historique), écran « Comment ça marche », notifications Windows ; puis textes accentués, icônes, animation, barre adaptative | Terminée (v0.5.0, v0.6.0) |
-| **6 — Distribution** | Installateur final, mises à jour, tests sur Windows 10 et 11 vierges, première version publiée avec son empreinte SHA-256 | À venir |
+| **6 — Distribution** | Mises à jour signées, refus du retour en arrière, essais d'installation automatisés (Bac à sable Windows, GitHub Actions), première version publiée avec son empreinte SHA-256 | En cours |
 
 ## Installation
 
-**Configuration requise** : Windows 10 (version 1809 ou ultérieure) ou Windows 11, 64 bits.
+**Configuration requise** : Windows 11 ou Windows 10 (version 1809 ou ultérieure), 64 bits. Les essais
+sur machine vierge sont faits sous Windows 11 ; Windows 10 n'a plus de support grand public de Microsoft
+depuis octobre 2025 et n'est pas testé sur machine vierge.
 Le moteur Microsoft Edge WebView2, présent sur les Windows à jour, est nécessaire à l'affichage de la
 fenêtre ; s'il manque, l'application propose d'ouvrir la page de téléchargement officielle de Microsoft.
 
@@ -142,7 +144,7 @@ Chaque installateur `FacilFreePC-Setup-<version>.exe` est accompagné d'un fichi
 son empreinte. Avant d'installer, comparez-la avec celle du fichier téléchargé :
 
 ```powershell
-Get-FileHash .\FacilFreePC-Setup-0.3.0.exe -Algorithm SHA256
+Get-FileHash .\FacilFreePC-Setup-0.6.0.exe -Algorithm SHA256
 ```
 
 Les deux empreintes doivent être **strictement identiques**. Sinon, n'exécutez pas le fichier.
@@ -171,8 +173,16 @@ Ensuite, Facil FreePC vit dans la zone de notification : **double-clic** pour ou
 
 ### 4. Mettre à jour ou désinstaller
 
-- **Mise à jour** : lancez simplement le nouvel installateur ; il ferme proprement la version en cours
-  avant de la remplacer.
+- **Mise à jour depuis l'application** : une fois par semaine, Facil FreePC regarde sur GitHub si une
+  version plus récente existe (bouton « Vérifier maintenant » dans « Comment ça marche »). Une version
+  plus récente devient une **décision** : rien ne s'installe sans votre clic. FreePC n'accepte une mise à
+  jour que si sa description est **signée par la clé de Facil** (vérifiée par l'application elle-même) et si
+  l'installateur téléchargé a exactement l'empreinte signée ; il se ferme, s'installe puis redémarre, en
+  gardant réglages et historique. Vérification hebdomadaire désactivable : `"updates": { "weeklyCheck": false }`
+  dans `%LOCALAPPDATA%\FacilFreePC\settings.json`.
+- **Mise à jour manuelle** : lancez le nouvel installateur ; il ferme proprement la version en cours avant
+  de la remplacer. Installer une version **plus ancienne** que celle en place est refusé (ses données ne
+  seraient pas lisibles par l'ancienne version).
 - **Désinstallation** : Paramètres Windows > Applications > Facil FreePC. L'application est fermée, le
   démarrage automatique retiré, puis on vous demande si vous voulez aussi supprimer vos données
   (réponse par défaut : non). En désinstallation silencieuse, les données sont toujours conservées.
@@ -181,7 +191,9 @@ Ensuite, Facil FreePC vit dans la zone de notification : **double-clic** pour ou
 
 - **Vos données restent chez vous.** Tout est stocké dans `%LOCALAPPDATA%\FacilFreePC`, sur votre PC.
   Facil FreePC n'envoie rien à Emac SAH ni à personne : pas de compte, pas de télémétrie, pas de
-  publicité.
+  publicité. Seule connexion sortante : la lecture hebdomadaire de la dernière version publiée sur
+  GitHub (simple téléchargement d'un petit fichier, rien n'est envoyé ; votre adresse IP est visible de
+  GitHub comme pour toute page web), désactivable.
 - **Rien n'est ouvert sur le réseau.** L'interface est servie par un petit serveur qui n'écoute que sur
   votre PC (adresse `127.0.0.1`), jamais sur votre réseau local ni sur Internet.
 - **Seule la fenêtre de Facil FreePC peut le commander.** Un site web ouvert dans votre navigateur ne
@@ -241,6 +253,10 @@ Tests seuls : `dotnet test FreeRes.sln`.
 | `tests/FreeRes.Ui.Tests` | Bout en bout avec Playwright sur le **Microsoft Edge installé** (aucun navigateur téléchargé) : décisions, vues, absence de défilement à la taille réelle de la zone cliente (1163x581 à 150 %) et barre entière de 1266 à 886 points de large, en thème clair et sombre, visite animée (lecture, pause, chapitres, réduction des animations), icônes, données affichées en texte, jeton et origine ; captures dans `artifacts\ui` |
 | `installer/FacilFreePC.iss` | Inno Setup : installation par utilisateur, démarrage de session, fermeture avant mise à jour ou désinstallation |
 | `tools/New-AppIcon.ps1` | Génère `assets/app.ico` (multi-tailles) à partir de l'icône de marque |
+| `tools/New-IconSprite.py` | Génère `wwwroot/icons.svg` (icônes Lucide retenues + licence complète) depuis le paquet `lucide-static` |
+| `tools/FreeRes.UpdateSign` | Clé de signature des mises à jour : `new-key` (une seule fois, clé protégée par DPAPI), `manifest`, `sign` (utilisés par `build.ps1`), `export-ci` (vers le secret GitHub, jamais à l'écran) |
+| `tools/Test-Installer.ps1` | Essai d'installation sur machine VIERGE : installation silencieuse, lancement, refus du retour en arrière, mise à jour avec relance, désinstallation, données conservées |
+| `tools/Start-SandboxTest.ps1` | Lance `Test-Installer.ps1` dans le Bac à sable Windows (Windows 11 vierge, sans réseau) avec deux installateurs d'essai |
 | `tools/New-DarkLogo.ps1` | Génère `assets/logo-dark.png`, variante du logo pour fond sombre |
 | `assets/` | Logo (servi aussi par l'interface), icône, images de l'assistant d'installation |
 | `.github/workflows/` | `ci.yml` et `release.yml`, préparés mais **désactivés** : la construction se fait aujourd'hui en local |

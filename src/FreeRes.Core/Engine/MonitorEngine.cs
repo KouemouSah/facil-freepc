@@ -48,6 +48,12 @@ public interface IIconSource
     string? IconPath(string id);
 }
 
+/// <summary>Verification de mise a jour demandee par l'utilisateur ; renvoie le message a afficher.</summary>
+public interface IUpdateCheck
+{
+    Task<string> CheckNowAsync(CancellationToken cancellationToken);
+}
+
 /// <summary>Compte rendu d'un cycle de surveillance.</summary>
 public sealed record CycleReport(
     DateTimeOffset At,
@@ -94,6 +100,8 @@ public sealed class MonitorEngine(
     public IReadOnlyList<IStatusSource> StatusSources { get; } = modules.OfType<IStatusSource>().ToList();
 
     public IReadOnlyList<IIconSource> IconSources { get; } = modules.OfType<IIconSource>().ToList();
+
+    public IUpdateCheck? UpdateCheck { get; } = modules.OfType<IUpdateCheck>().FirstOrDefault();
 
     public MachineProfile Profile => profile;
 

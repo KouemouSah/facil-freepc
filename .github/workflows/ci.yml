@@ -1,11 +1,11 @@
 # Integration continue : compilation (avertissements = erreurs) + tests .NET et extension Firefox a chaque push / PR.
-# PREPARE, NON ACTIVE : GitHub Actions est desactive sur le depot (build local par build.ps1, consigne utilisateur).
 name: ci
 
 on:
   push:
     branches: [main, develop]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

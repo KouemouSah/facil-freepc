@@ -1,16 +1,18 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   Construction locale de Facil FreePC : compilation (avertissements = erreurs) -> tests -> publication
-  d'un exe unique autonome -> installeur Inno Setup -> empreinte SHA-256.
+  d'un exe unique autonome -> installeur Inno Setup -> empreinte SHA-256 -> manifeste de mise a jour signe.
   Meme sequence que .github\workflows\release.yml (a activer plus tard).
 .PARAMETER SkipTests
   A n'utiliser que pour un essai rapide : une version distribuee doit TOUJOURS passer les tests.
 .PARAMETER Iscc
   Chemin de ISCC.exe ; par defaut : variable INNO_ISCC, puis Inno Setup 7, puis 6.
+.PARAMETER Notes
+  Notes de version (une phrase) affichees dans la decision de mise a jour.
 #>
 [CmdletBinding()]
-param([switch]$SkipTests, [string]$Iscc)
+param([switch]$SkipTests, [string]$Iscc, [string]$Notes = 'Corrections et améliorations : voir les notes de version sur GitHub.')
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
@@ -95,4 +97,23 @@ foreach ($f in $exe, $setup) {
     [IO.File]::WriteAllText("$f.sha256", "$h  $([IO.Path]::GetFileName($f))`n", (New-Object Text.UTF8Encoding($false)))
     "{0}  {1}  ({2:N1} MB)" -f $h, [IO.Path]::GetFileName($f), ((Get-Item $f).Length / 1MB)
 }
+
+Step 'Manifeste de mise a jour (latest.json signe)'
+# L'application n'installe une mise a jour que si ce manifeste est signe par la cle de Facil (cle PUBLIQUE compilee
+# dans l'exe) et si l'installeur telecharge a cette empreinte. Cle privee : UPDATE_SIGNING_KEY (CI) ou fichier
+# protege par DPAPI sur le poste de publication.
+$sign = @('run', '--project', (Join-Path $root 'tools\FreeRes.UpdateSign\FreeRes.UpdateSign.csproj'), '-c', 'Release', '--')
+$setupHash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+$manifest = Join-Path $artifacts 'latest.json'
+$url = "https://github.com/KouemouSah/facil-freepc/releases/download/v$version/FacilFreePC-Setup-$version.exe"
+Invoke-Checked 'dotnet' ($sign + @('manifest', $version, $url, $setupHash, $Notes, $manifest))
+$keyFile = Join-Path $env:APPDATA 'FacilFreePC-signing\update-key.dpapi'
+if ($env:UPDATE_SIGNING_KEY -or (Test-Path $keyFile)) {
+    Invoke-Checked 'dotnet' ($sign + @('sign', $manifest))
+}
+else {
+    Remove-Item "$manifest.sig" -ErrorAction SilentlyContinue
+    Write-Warning 'Manifeste NON signe (cle absente) : les versions installees ignoreront cette publication.'
+}
+
 Write-Host "`nOK : $setup" -ForegroundColor Green
