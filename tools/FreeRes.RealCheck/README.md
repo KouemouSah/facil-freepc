@@ -28,3 +28,7 @@ Code de sortie 0 = vérification réussie. Fichiers de travail : `%TEMP%\FreeRes
 | `service-manual gupdate` | `Start=3`, puis démarrage automatique **différé** d'origine restauré (vérifié par `sc qc`) |
 | `docker-cycle` | `fstrim` code 0 ; mesure 5,74 GB de données / VHDX 7,74 GB (identique à la mesure manuelle) |
 | `docker-compact` | diskpart par entrée standard : 7,71 → 7,70 GB, VHDX détaché ; après redémarrage de Docker : volumes et images identiques, données Postgres lisibles |
+| `browser-restart firefox-dev` (accord de l'utilisateur, lancé **non élevé** via l'explorateur) | Fermeture par Ctrl+Maj+Q puis relance : 2 fenêtres / 13 onglets avant **et** après, fenêtres fermées conservées, Firefox relancé sans droits administrateur sur le bon profil. Mémoire 0,96 → 1,43 GB à +15 s (Firefox était léger : le redémarrage n'est proposé qu'au-delà de ~5,5 GB et 12 h). Constat : la relance « -profile chemin » fait écrire à Firefox des erreurs de raccourci de barre des tâches → relance **sans argument** pour le profil par défaut de l'édition |
+
+> Lancer `browser-restart` depuis un terminal **non élevé** : depuis un terminal administrateur, le navigateur
+> serait relancé avec des droits administrateur.

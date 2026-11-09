@@ -22,7 +22,8 @@ public sealed record BrowserDefinition(
     string? UserDataDir,
     bool RestartValidated,
     string? MemorySaverSettingsUrl,
-    string? StartupSettingsUrl);
+    string? StartupSettingsUrl,
+    string? FirefoxDefaultProfileSuffix = null);
 
 /// <summary>Processus d'un navigateur (image lue par handle, parent par instantane Toolhelp).</summary>
 public sealed record BrowserProcess(int Pid, int ParentPid, string? ImagePath, long WorkingSetBytes, DateTimeOffset? StartTime);

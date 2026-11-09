@@ -71,6 +71,33 @@ public sealed partial class BrowserStateReader(IBrowserPlatform platform)
         return value == 3;
     }
 
+    /// <summary>
+    /// true si <paramref name="profileDir"/> est le profil PAR DEFAUT de l'edition (installs.ini « Default= ») ET
+    /// porte le suffixe de cette edition : la relancer sans argument equivaut alors au lancement habituel de
+    /// l'utilisateur (constate le 2026-11-09 : une relance « -profile chemin » fait ecrire a Firefox des erreurs de
+    /// rattachement au raccourci de la barre des taches). Sinon, relance explicite avec -profile.
+    /// </summary>
+    public bool FirefoxIsEditionDefaultProfile(string profilesRoot, string profileDir, string editionSuffix)
+    {
+        var folder = Path.GetFileName(profileDir.TrimEnd('\\'));
+        if (string.IsNullOrEmpty(editionSuffix) || !folder.EndsWith(editionSuffix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var installs = platform.ReadAllText(Path.Combine(Path.GetDirectoryName(profilesRoot.TrimEnd('\\'))!, "installs.ini"));
+        if (installs is null)
+        {
+            return false;
+        }
+
+        var expected = "Profiles/" + folder;
+        return installs.Split('\n')
+            .Select(l => l.Trim())
+            .Any(l => l.StartsWith("Default=", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(l["Default=".Length..].Replace('\\', '/'), expected, StringComparison.OrdinalIgnoreCase));
+    }
+
     /// <summary>Extension compagnon presente et active dans le profil (extensions.json).</summary>
     public bool FirefoxExtensionActive(string profileDir)
     {

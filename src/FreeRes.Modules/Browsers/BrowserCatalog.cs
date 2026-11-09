@@ -25,13 +25,13 @@ public static class BrowserCatalog
             @"%LOCALAPPDATA%\Vivaldi\User Data", RestartValidated: false, null, null),
         new("firefox", "Mozilla Firefox", BrowserEngine.Gecko, "firefox.exe",
             [@"%ProgramFiles%\Mozilla Firefox\firefox.exe", @"%ProgramFiles(x86)%\Mozilla Firefox\firefox.exe"],
-            null, RestartValidated: true, null, "about:preferences#general"),
+            null, RestartValidated: true, null, "about:preferences#general", ".default-release"),
         new("firefox-dev", "Firefox Developer Edition", BrowserEngine.Gecko, "firefox.exe",
             [@"%ProgramFiles%\Firefox Developer Edition\firefox.exe"],
-            null, RestartValidated: true, null, "about:preferences#general"),
+            null, RestartValidated: true, null, "about:preferences#general", ".dev-edition-default"),
         new("firefox-nightly", "Firefox Nightly", BrowserEngine.Gecko, "firefox.exe",
             [@"%ProgramFiles%\Firefox Nightly\firefox.exe"],
-            null, RestartValidated: true, null, "about:preferences#general"),
+            null, RestartValidated: true, null, "about:preferences#general", ".default-nightly"),
     ];
 
     public static BrowserDefinition? Find(string id) => All.FirstOrDefault(b => b.Id == id);

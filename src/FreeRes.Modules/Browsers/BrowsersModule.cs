@@ -333,7 +333,9 @@ public sealed class BrowsersModule : IResourceModule
 
         IReadOnlyList<string> args = def.Engine == BrowserEngine.Chromium
             ? [$"--profile-directory={st.ActiveProfile ?? "Default"}", "--restore-last-session"]
-            : ["-profile", st.ActiveProfile!];
+            : _reader.FirefoxIsEditionDefaultProfile(_profilesRoot, st.ActiveProfile!, def.FirefoxDefaultProfileSuffix ?? string.Empty)
+                ? []                                   // profil par defaut de l'edition : comme le lancement habituel
+                : ["-profile", st.ActiveProfile!];
         return _launcher.Launch(st.ExePath, args)
             ? new ActionOutcome(true, string.Create(CultureInfo.InvariantCulture, $"{def.Name} ({st.WorkingSetGB} GB) ferme proprement puis relance, fenetres et onglets restaures"))
             : new ActionOutcome(false, $"{def.Name} ferme, mais la relance a echoue : relancez-le (vos onglets seront restaures)");

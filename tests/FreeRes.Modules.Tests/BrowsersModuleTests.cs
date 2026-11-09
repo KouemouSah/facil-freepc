@@ -99,7 +99,7 @@ public sealed class BrowsersModuleTests : IDisposable
     [
         new("chrome", "Google Chrome", BrowserEngine.Chromium, "chrome.exe", [ChromeExe], ChromeData, true, "chrome://settings/performance", "chrome://settings/onStartup"),
         new("brave", "Brave", BrowserEngine.Chromium, "brave.exe", [BraveExe], @"C:\D\Brave", false, null, null),
-        new("firefox", "Mozilla Firefox", BrowserEngine.Gecko, "firefox.exe", [FirefoxExe], null, true, null, "about:preferences#general"),
+        new("firefox", "Mozilla Firefox", BrowserEngine.Gecko, "firefox.exe", [FirefoxExe], null, true, null, "about:preferences#general", ".default-release"),
         new("firefox-dev", "Firefox Developer Edition", BrowserEngine.Gecko, "firefox.exe", [FirefoxDevExe], null, true, null, "about:preferences#general"),
     ];
 
@@ -339,6 +339,27 @@ public sealed class BrowsersModuleTests : IDisposable
         var outcome = await c.Resolve(Restart("firefox")).Execute(Restart("firefox"), false, default);
         Assert.True(outcome.Ok, outcome.Message);
         Assert.Equal(["-profile", profile], Assert.Single(_launcher.Launches).Args);
+    }
+
+    [Theory]
+    [InlineData("abcd.default-release", "Default=Profiles/abcd.default-release", true)]    // profil par defaut de l'edition
+    [InlineData("abcd.default-release", "Default=Profiles/autre.default-release", false)]  // pas le profil par defaut
+    [InlineData("abcd.dev-edition-default", "Default=Profiles/abcd.dev-edition-default", false)]   // defaut d'une AUTRE edition
+    [InlineData("abcd.default-release", null, false)]                                       // installs.ini absent
+    public async Task Relance_Firefox_sans_argument_seulement_pour_le_profil_par_defaut_de_l_edition(string profileName, string? installsLine, bool expectNoArgs)
+    {
+        Install(FirefoxExe);
+        var profile = FirefoxProfile(profileName, restoreSession: true);
+        if (installsLine is not null)
+        {
+            _p.Files[Path.Combine(Path.GetDirectoryName(Profiles)!, "installs.ini")] = $"[CA9422711AE1A81C]\r\n{installsLine}\r\nLocked=1\r\n";
+        }
+
+        Run(FirefoxExe, 500, 7 * GB, 20);
+        var (c, _) = Catalog();
+        Assert.True((await c.Resolve(Restart("firefox")).Execute(Restart("firefox"), false, default)).Ok);
+        var args = Assert.Single(_launcher.Launches).Args;
+        Assert.Equal(expectNoArgs ? [] : ["-profile", profile], args);
     }
 
     [Fact]
