@@ -41,8 +41,11 @@ public sealed class EventLog(string directory, TimeProvider time)
 
     public string PathFor(DateTimeOffset ts) => Path.Combine(Directory, $"events-{ts:yyyy-MM}.jsonl");
 
-    /// <summary>Evenements les plus recents (ordre chronologique), lignes illisibles ignorees.</summary>
-    public IReadOnlyList<LogEntry> ReadRecent(int max)
+    /// <summary>
+    /// Evenements les plus recents (ordre chronologique), lignes illisibles ignorees. <paramref name="filter"/> :
+    /// seuls les evenements retenus comptent dans <paramref name="max"/> (ex. actions et decisions seulement).
+    /// </summary>
+    public IReadOnlyList<LogEntry> ReadRecent(int max, Func<LogEntry, bool>? filter = null)
     {
         lock (_gate)
         {
@@ -58,7 +61,7 @@ public sealed class EventLog(string directory, TimeProvider time)
                 {
                     try
                     {
-                        if (JsonSerializer.Deserialize<LogEntry>(line, Json) is { } e)
+                        if (JsonSerializer.Deserialize<LogEntry>(line, Json) is { } e && (filter is null || filter(e)))
                         {
                             result.Add(e);
                         }

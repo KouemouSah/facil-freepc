@@ -17,7 +17,11 @@ public sealed record ActionRequest(string Type, IReadOnlyDictionary<string, stri
 }
 
 /// <summary>Ce qu'un module rend apres execution.</summary>
-public sealed record ActionOutcome(bool Ok, string Message);
+/// <summary>
+/// Resultat d'une action. <see cref="Changed"/> : false quand l'action n'avait rien a faire (ex. zone deja propre) ;
+/// elle reste journalisee mais n'apparait pas dans « Fait automatiquement ».
+/// </summary>
+public sealed record ActionOutcome(bool Ok, string Message, bool Changed = true);
 
 /// <summary>Resultat complet, journalise et affiche.</summary>
 public sealed record ActionResult(string Type, bool Ok, string Message, double DiskDeltaGB, bool DryRun);

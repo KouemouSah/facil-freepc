@@ -1,103 +1,401 @@
 "use strict";
 
-// Tableau de bord minimal (phase 1) : etat reel du moteur, rafraichi toutes les 10 s.
-// Tout le texte est insere via textContent (jamais innerHTML) : aucune injection possible depuis les donnees.
+// Interface Facil FreePC. Tout texte venant des donnees passe par textContent (jamais innerHTML) :
+// aucune injection possible depuis un nom de programme, de modele ou de navigateur.
+// L'interface ne fait que DECIDER des propositions du moteur ; elle ne peut demander aucune autre action.
+
 const REFRESH_MS = 10000;
+const MODULE_REFRESH_MS = 30000;
 const nf1 = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
 const nf2 = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 });
-const SEVERITY = { Crit: "Critique", Warn: "Alerte", Info: "Info" };
+const SEVERITY = { Crit: "Critique", Warn: "Alerte", Info: "Conseil" };
+const STARTUP_KIND = { Run: "Registre", StartupFolder: "Démarrage", Service: "Service", ScheduledTask: "Tâche planifiée" };
+const VIEWS = ["dashboard", "apps", "browsers", "ai", "docker", "history", "help"];
 
+let state = null;
+let currentView = "dashboard";
+let moduleTimer = null;
+
+// ------------------------------------------------------------------ outils
 function el(id) { return document.getElementById(id); }
 
-// level : "ok" | "warn" | "crit"
-function setGauge(id, value, fillPct, level, sub) {
-  const g = el(id);
-  g.querySelector("[data-v]").textContent = value;
-  const bar = g.querySelector("[data-b]");
-  bar.style.width = Math.max(0, Math.min(100, fillPct)).toFixed(0) + "%";
-  g.dataset.level = level;
-  g.querySelector("[data-s]").textContent = sub;
+function make(tag, props, ...children) {
+  const node = document.createElement(tag);
+  if (props) {
+    for (const [k, v] of Object.entries(props)) {
+      if (v === undefined || v === null) { continue; }
+      if (k === "text") { node.textContent = v; }
+      else if (k === "class") { node.className = v; }
+      else if (k.startsWith("data-")) { node.setAttribute(k, v); }
+      else { node[k] = v; }
+    }
+  }
+  for (const c of children) {
+    if (c === null || c === undefined || c === false) { continue; }
+    node.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  }
+  return node;
 }
 
+function gb(v) { return v === null || v === undefined ? "—" : nf2.format(v) + " GB"; }
+function bytesGB(b) { return gb(b / 1073741824); }
+function time(iso) { return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
+function dayTime(iso) {
+  const d = new Date(iso);
+  const today = new Date().toDateString() === d.toDateString();
+  return today ? time(iso) : d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) + " " + time(iso);
+}
+function plural(n, one, many) { return n + " " + (n > 1 ? many : one); }
+function hours(h) { return h >= 48 ? nf1.format(h / 24) + " jours" : nf1.format(h) + " h"; }
+
+async function api(path, options) {
+  const res = await fetch(path, Object.assign({ credentials: "same-origin", cache: "no-store" }, options));
+  if (!res.ok && res.status !== 404 && res.status !== 422) { throw new Error("HTTP " + res.status); }
+  const type = res.headers.get("content-type") || "";
+  const body = res.status === 204 ? null : type.includes("json") ? await res.json() : await res.text();
+  return { status: res.status, body };
+}
+
+function post(path) { return api(path, { method: "POST" }); }
+
+// ------------------------------------------------------------------ navigation
+function showView(name) {
+  if (!VIEWS.includes(name)) { name = "dashboard"; }
+  currentView = name;
+  for (const v of VIEWS) {
+    el("view-" + v).hidden = v !== name;
+    el("tab-" + v).setAttribute("aria-selected", String(v === name));
+  }
+  if (location.hash !== "#" + name) { history.replaceState(null, "", "#" + name); }
+  clearInterval(moduleTimer);
+  moduleTimer = null;
+  const loaders = { apps: loadApps, browsers: loadBrowsers, ai: loadAi, docker: loadDocker, history: loadHistory };
+  if (loaders[name]) {
+    loaders[name]();
+    moduleTimer = setInterval(loaders[name], MODULE_REFRESH_MS);
+  }
+}
+
+document.querySelector(".tabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-view]");
+  if (b) { showView(b.dataset.view); }
+});
+
+// Lien direct ou retour arriere vers une vue (#apps, #help...).
+window.addEventListener("hashchange", () => {
+  const name = location.hash.slice(1);
+  if (name !== currentView) { showView(name); }
+});
+
+document.querySelector(".tabs").addEventListener("keydown", e => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") { return; }
+  const i = VIEWS.indexOf(currentView) + (e.key === "ArrowRight" ? 1 : -1);
+  const next = VIEWS[(i + VIEWS.length) % VIEWS.length];
+  showView(next);
+  el("tab-" + next).focus();
+});
+
+// ------------------------------------------------------------------ tableau de bord
+// level : "ok" | "warn" | "crit" ; les reperes sont places en % de la piste.
+function setMeter(id, value, fillPct, level, sub, warnPct, critPct) {
+  const m = el(id);
+  m.querySelector("[data-v]").textContent = value;
+  m.querySelector("[data-b]").style.width = clamp(fillPct) + "%";
+  m.querySelector("[data-w]").style.left = clamp(warnPct) + "%";
+  m.querySelector("[data-c]").style.left = clamp(critPct) + "%";
+  m.dataset.level = level;
+  m.querySelector("[data-s]").textContent = sub;
+}
+function clamp(p) { return Math.max(0, Math.min(100, p)).toFixed(1); }
 function levelLow(v, warn, crit) { return v < crit ? "crit" : v < warn ? "warn" : "ok"; }
 function levelHigh(v, warn, crit) { return v >= crit ? "crit" : v >= warn ? "warn" : "ok"; }
 
-function render(s) {
+function renderState(s) {
+  state = s;
   const t = s.thresholds, m = s.snapshot, p = s.profile;
 
-  setGauge("g-ram", nf1.format(m.ramAvailGB) + " GB",
-    100 * m.ramAvailGB / m.ramTotalGB, levelLow(m.ramAvailGB, t.ramAvailWarnGB, t.ramAvailCritGB),
-    "sur " + nf1.format(m.ramTotalGB) + " GB · alerte < " + nf1.format(t.ramAvailWarnGB) + " GB");
-  setGauge("g-commit", nf1.format(m.commitPct) + " %",
-    m.commitPct, levelHigh(m.commitPct, t.commitWarnPct, t.commitCritPct),
-    nf1.format(m.commitUsedGB) + " / " + nf1.format(m.commitLimitGB) + " GB (RAM + fichier d'échange)");
-  setGauge("g-disk", nf1.format(m.systemDriveFreeGB) + " GB",
-    100 * m.systemDriveFreeGB / m.systemDriveTotalGB, levelLow(m.systemDriveFreeGB, t.diskFreeWarnGB, t.diskFreeCritGB),
-    m.systemDrive + " sur " + nf1.format(m.systemDriveTotalGB) + " GB · alerte < " + nf1.format(t.diskFreeWarnGB) + " GB");
+  setMeter("m-ram", gb(m.ramAvailGB), 100 * m.ramAvailGB / m.ramTotalGB, levelLow(m.ramAvailGB, t.ramAvailWarnGB, t.ramAvailCritGB),
+    "sur " + gb(m.ramTotalGB) + ", alerte sous " + gb(t.ramAvailWarnGB),
+    100 * t.ramAvailWarnGB / m.ramTotalGB, 100 * t.ramAvailCritGB / m.ramTotalGB);
+  setMeter("m-commit", nf1.format(m.commitPct) + " %", m.commitPct, levelHigh(m.commitPct, t.commitWarnPct, t.commitCritPct),
+    gb(m.commitUsedGB) + " sur " + gb(m.commitLimitGB) + " (mémoire vive et fichier d'échange)",
+    t.commitWarnPct, t.commitCritPct);
+  setMeter("m-disk", gb(m.systemDriveFreeGB), 100 * m.systemDriveFreeGB / m.systemDriveTotalGB,
+    levelLow(m.systemDriveFreeGB, t.diskFreeWarnGB, t.diskFreeCritGB),
+    m.systemDrive + " sur " + gb(m.systemDriveTotalGB) + ", alerte sous " + gb(t.diskFreeWarnGB),
+    100 * t.diskFreeWarnGB / m.systemDriveTotalGB, 100 * t.diskFreeCritGB / m.systemDriveTotalGB);
 
-  const top = el("top");
-  top.replaceChildren(...m.topProcesses.slice(0, 6).map(pr => {
-    const li = document.createElement("li");
-    const name = document.createElement("span");
-    name.textContent = pr.name + (pr.count > 1 ? " (" + pr.count + ")" : "");
-    const v = document.createElement("span");
-    v.className = "num";
-    v.textContent = nf2.format(pr.workingSetGB) + " GB";
-    li.append(name, v);
-    return li;
-  }));
+  el("top").replaceChildren(...m.topProcesses.slice(0, 8).map(pr =>
+    make("li", null, make("span", { text: pr.name + (pr.count > 1 ? " (" + pr.count + ")" : "") }), make("span", { class: "num", text: gb(pr.workingSetGB) }))));
 
-  const list = el("pending");
-  list.replaceChildren(...s.pending.map(d => {
-    const li = document.createElement("li");
-    li.dataset.severity = d.severity;
-    const sev = document.createElement("span");
-    sev.className = "sev";
-    sev.textContent = SEVERITY[d.severity] || d.severity;
-    const title = document.createElement("strong");
-    title.textContent = d.title;
-    const detail = document.createElement("p");
-    detail.className = "muted small";
-    detail.textContent = d.detail + (d.estGainGB > 0 ? " · gain estimé ~" + nf2.format(d.estGainGB) + " GB" : "");
-    li.append(sev, title, detail);
+  renderPending(s);
+
+  el("auto").replaceChildren(...s.recentAuto.map(logItem));
+  el("auto-empty").hidden = s.recentAuto.length > 0;
+
+  const health = el("health");
+  const anyWarn = ["m-ram", "m-commit", "m-disk"].some(id => el(id).dataset.level === "warn");
+  health.dataset.level = s.critical ? "crit" : anyWarn ? "warn" : "ok";
+  health.textContent = s.critical ? "État critique" : anyWarn ? "À surveiller" : "Tout va bien";
+  el("busy").hidden = !s.decisionInProgress;
+
+  el("machine").textContent = [p.manufacturer, p.model].filter(Boolean).join(" ") + ", " + p.osName +
+    (p.osDisplayVersion ? " " + p.osDisplayVersion : "") + ", " + nf1.format(p.ramTotalGB) + " GB de mémoire";
+  el("cycle").textContent = s.lastCycle
+    ? "Dernière analyse à " + time(s.lastCycle.at) + ", puis toutes les " + s.monitorIntervalMinutes + " min" +
+      (s.lastCycle.errors.length ? " (" + s.lastCycle.errors.length + " module(s) en erreur)" : "")
+    : "Première analyse en cours";
+  el("data-dir").textContent = s.dataDirectory || "";
+}
+
+function renderPending(s) {
+  const busyIds = new Set([...document.querySelectorAll(".decision[data-busy]")].map(n => n.dataset.id));
+  el("pending").replaceChildren(...s.pending.map(d => {
+    const actions = make("div", { class: "actions" },
+      make("button", { class: "btn primary", type: "button", text: "Appliquer", "data-act": "approve" }),
+      make("button", { class: "btn", type: "button", text: "Plus tard", "data-act": "snooze", title: "Revient dans " + hours(s.snoozeHours) }),
+      make("button", { class: "btn", type: "button", text: "Ignorer", "data-act": "reject", title: "Ignorée pendant " + hours(s.rejectHours) }));
+    const tags = make("div", { class: "tags" },
+      make("span", { class: "tag sev-" + d.severity, text: SEVERITY[d.severity] || d.severity }),
+      d.estGainGB > 0 ? make("span", { class: "tag", text: "gain estimé " + gb(d.estGainGB) }) : null,
+      d.requiresAdmin ? make("span", { class: "tag", text: "Windows demandera votre accord administrateur" }) : null);
+    const li = make("li", { class: "decision", "data-severity": d.severity, "data-id": d.id },
+      make("p", { class: "title", text: d.title }), actions, make("p", { class: "detail", text: d.detail }), tags);
+    if (busyIds.has(d.id)) { setBusy(li, true); }
     return li;
   }));
   el("pending-count").textContent = s.pending.length;
   el("pending-empty").hidden = s.pending.length > 0;
-
-  const health = el("health");
-  health.textContent = s.critical ? "État critique" : "Surveillance active";
-  health.dataset.level = s.critical ? "crit" : "ok";
-
-  el("machine").textContent = [p.manufacturer, p.model].filter(Boolean).join(" ") + " · " + p.osName +
-    (p.osDisplayVersion ? " " + p.osDisplayVersion : "") + " (build " + p.osBuild + ") · " + p.logicalProcessors + " processeurs logiques";
-  el("cycle").textContent = s.lastCycle
-    ? "Dernière analyse : " + new Date(s.lastCycle.at).toLocaleTimeString("fr-FR") + " · toutes les " + s.monitorIntervalMinutes + " min" +
-      (s.lastCycle.errors.length ? " · " + s.lastCycle.errors.length + " erreur(s) de module" : "")
-    : "Première analyse en cours…";
-
-  const warnings = s.settingsErrors || [];
-  el("warnings").hidden = warnings.length === 0;
-  el("warning-list").replaceChildren(...warnings.map(w => { const li = document.createElement("li"); li.textContent = w; return li; }));
+  el("pending").hidden = s.pending.length === 0;
 }
 
+function setBusy(li, busy) {
+  if (busy) { li.dataset.busy = "1"; } else { delete li.dataset.busy; }
+  li.querySelectorAll("button").forEach(b => { b.disabled = busy; });
+}
+
+function feedback(ok, message) {
+  const f = el("feedback");
+  f.hidden = false;
+  f.dataset.ok = String(ok);
+  f.textContent = message;
+}
+
+el("pending").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-act]");
+  if (!b) { return; }
+  const li = b.closest(".decision");
+  const id = li.dataset.id;
+  const title = li.querySelector(".title").textContent;
+  const act = b.dataset.act;
+  setBusy(li, true);
+  if (act === "approve") { el("busy").hidden = false; }
+  try {
+    const r = await post("/api/proposals/" + encodeURIComponent(id) + "/" + act);
+    if (r.status === 404) {
+      feedback(true, "« " + title + " » a déjà été traitée ou n'est plus utile.");
+    } else if (r.status === 422) {
+      feedback(false, "« " + title + " » refusée : " + r.body);
+    } else if (act === "approve") {
+      const res = r.body;
+      const gain = res.diskDeltaGB > 0 ? " (" + gb(res.diskDeltaGB) + " libérés sur le disque)" : "";
+      feedback(res.ok, (res.ok ? "Appliqué : " : "Échec : ") + res.message + gain +
+        (res.stillPending ? ". La décision reste en attente." : ""));
+    } else {
+      feedback(true, act === "snooze"
+        ? "« " + title + " » reviendra dans " + hours(state.snoozeHours) + "."
+        : "« " + title + " » est ignorée pendant " + hours(state.rejectHours) + ".");
+    }
+  } catch (err) {
+    feedback(false, "La décision n'a pas pu être envoyée (" + err.message + "). Réessayez.");
+  } finally {
+    setBusy(li, false);
+    await refresh();
+  }
+});
+
+el("analyze").addEventListener("click", async () => {
+  const b = el("analyze");
+  b.disabled = true;
+  b.textContent = "Analyse…";
+  try {
+    const r = await post("/api/cycle");
+    const c = r.body;
+    feedback(c.errors.length === 0, c.newProposals > 0
+      ? "Analyse terminée : " + c.newProposals + " nouvelle(s) décision(s)."
+      : "Analyse terminée : rien de nouveau." + (c.errors.length ? " Modules en erreur : " + c.errors.join(" ; ") : ""));
+  } catch (err) {
+    feedback(false, "L'analyse a échoué (" + err.message + ").");
+  } finally {
+    b.disabled = false;
+    b.textContent = "Analyser maintenant";
+    await refresh();
+  }
+});
+
+function logItem(e) {
+  return make("li", { "data-ok": String(e.ok) },
+    make("span", { class: "when", text: dayTime(e.at) }),
+    make("span", { class: "what", text: e.message }),
+    make("span", { class: "gain", text: e.diskDeltaGB > 0 ? "+" + gb(e.diskDeltaGB) : "" }));
+}
+
+// ------------------------------------------------------------------ modules
+async function module(name) {
+  const r = await api("/api/modules/" + name);
+  return r.status === 200 ? r.body.status : null;
+}
+
+function waiting(target, text) {
+  target.replaceChildren(make("p", { class: "muted empty-panel", text: text }));
+}
+
+function card(title, big, rows, note) {
+  const dl = make("dl");
+  for (const [k, v] of rows) {
+    if (v === null || v === undefined || v === "") { continue; }
+    dl.append(make("dt", { text: k }), make("dd", { text: v }));
+  }
+  return make("li", { class: "card" },
+    make("div", { class: "head" }, make("h3", { text: title }), big ? make("span", { class: "big", text: big }) : null),
+    dl, note ? make("p", { class: "small muted", text: note }) : null);
+}
+
+async function loadApps() {
+  try {
+    const inv = await module("apps");
+    if (!inv) { waiting(el("apps-usage"), "Inventaire au prochain cycle d'analyse."); el("apps-startup").replaceChildren(); return; }
+    const usage = [...inv.usage].filter(u => u.processCount > 0).sort((a, b) => b.workingSetBytes - a.workingSetBytes);
+    el("apps-usage").replaceChildren(...usage.map(u => make("tr", null,
+      make("td", { text: u.name, title: u.name }),
+      make("td", { class: "num", text: u.processCount }),
+      make("td", { class: "num", text: gb(u.workingSetGB) }),
+      make("td", null, make("span", { class: u.background ? "pill bg" : "pill", text: u.background ? "Arrière-plan" : "Avec fenêtre" })))));
+    el("apps-meta").textContent = plural(inv.apps.length, "application installée", "applications installées") + ", " + plural(usage.length, "active", "actives");
+    const startup = [...inv.startupItems].sort((a, b) => Number(b.enabled) - Number(a.enabled) || a.name.localeCompare(b.name, "fr"));
+    el("apps-startup").replaceChildren(...startup.map(s => make("tr", null,
+      make("td", { text: s.name, title: s.command || s.name }),
+      make("td", { text: STARTUP_KIND[s.kind] || s.kind }),
+      make("td", null, make("span", { class: s.enabled && !s.protection ? "pill on" : "pill", text: s.protection ? "Protégé" : s.enabled ? "Activé" : "Désactivé", title: s.protection || "" })))));
+    el("startup-meta").textContent = plural(startup.filter(s => s.enabled).length, "activé", "activés") + " sur " + startup.length;
+  } catch (err) { waiting(el("apps-usage"), "Lecture impossible (" + err.message + ")."); }
+}
+
+async function loadBrowsers() {
+  const list = el("browsers");
+  try {
+    const browsers = await module("browsers");
+    if (!browsers || browsers.length === 0) { waiting(list, browsers ? "Aucun navigateur reconnu sur ce PC." : "État au prochain cycle d'analyse."); return; }
+    list.replaceChildren(...browsers.map(b => card(b.name, b.running ? gb(b.workingSetGB) : "Fermé", [
+      ["Processus", b.running ? String(b.processCount) : null],
+      ["Ouvert depuis", b.uptimeHours !== null && b.uptimeHours !== undefined ? hours(b.uptimeHours) : null],
+      ["Mise en veille des onglets", b.memorySaverNote],
+      ["Profils ouverts", b.activeProfiles > 0 ? String(b.activeProfiles) : null],
+      ["Extension FreePC", b.extensionInstalled === null || b.extensionInstalled === undefined ? null : b.extensionInstalled ? "Installée" : "Absente"],
+    ], "Redémarrage : " + b.restartNote)));
+  } catch (err) { waiting(list, "Lecture impossible (" + err.message + ")."); }
+}
+
+async function loadAi() {
+  const list = el("ai");
+  try {
+    const apps = await module("ai");
+    if (!apps || apps.length === 0) {
+      waiting(list, apps ? "Aucune application d'IA locale détectée (Ollama, LM Studio, GPT4All, Jan)." : "État au prochain cycle d'analyse.");
+      return;
+    }
+    list.replaceChildren(...apps.map(a => card(a.name, a.processCount > 0 ? gb(a.workingSetGB) : null, [
+      ["Installée", a.installed ? "Oui" : "Non (serveur seul)"],
+      ["Modèles sur le disque", a.modelsDir ? gb(a.modelsDiskGB) : null],
+      ["Dossier des modèles", a.modelsDir],
+      ["Modèles installés", a.installedModelCount > 0 ? String(a.installedModelCount) : null],
+      ["Modèles chargés", a.loadedModels.length ? a.loadedModels.map(m => m.name + " " + bytesGB(m.sizeBytes) + " (graphique " + bytesGB(m.vramBytes) + ")").join(", ") : null],
+    ], a.note)));
+  } catch (err) { waiting(list, "Lecture impossible (" + err.message + ")."); }
+}
+
+async function loadDocker() {
+  const box = el("docker");
+  try {
+    const d = await module("docker");
+    if (!d || !d.installed) { waiting(box, d ? "Docker Desktop n'est pas installé sur ce PC." : "État au prochain cycle d'analyse."); return; }
+    const u = d.usage;
+    const rows = [
+      ["État", d.running ? "Démarré" : "Arrêté"],
+      ["Disque virtuel (VHDX)", u ? gb(u.vhdxGB) : null],
+      ["Données dans Docker", u ? gb(u.insideUsedGB) : null],
+      ["Images", u && u.imagesGB !== null ? gb(u.imagesGB) + " dont " + gb(u.imagesReclaimableGB) + " récupérables" : null],
+      ["Volumes (jamais purgés)", u && u.volumesGB !== null ? gb(u.volumesGB) : null],
+      ["Cache de construction", u && u.buildCacheGB !== null ? gb(u.buildCacheGB) + " dont " + gb(u.buildCacheReclaimableGB) + " récupérables" : null],
+      ["Mesuré", u ? dayTime(u.measuredAt) : "Pas encore (Docker doit être démarré)"],
+      ["Dernier nettoyage interne (fstrim)", d.trimmedAt ? dayTime(d.trimmedAt) : "Jamais"],
+      ["Dernier compactage", d.compactedAt ? dayTime(d.compactedAt) : "Jamais"],
+    ];
+    box.replaceChildren(make("ul", { class: "cards" }, card("Docker Desktop", u ? gb(u.vhdxGB) : null, rows,
+      "Le disque virtuel de Docker ne rétrécit jamais seul : FreePC récupère l'espace libéré à l'intérieur, puis propose le compactage quand le gain réel le justifie.")));
+  } catch (err) { waiting(box, "Lecture impossible (" + err.message + ")."); }
+}
+
+// ------------------------------------------------------------------ historique
+async function loadHistory() {
+  try {
+    const h = (await api("/api/history")).body;
+    el("history").replaceChildren(...h.events.map(logItem));
+    el("history-empty").hidden = h.events.length > 0;
+    drawChart(h.metrics);
+  } catch (err) { feedback(false, "Historique illisible (" + err.message + ")."); }
+}
+
+function drawChart(points) {
+  const svg = el("chart");
+  const ns = "http://www.w3.org/2000/svg";
+  svg.replaceChildren();
+  el("chart-empty").hidden = points.length >= 2;
+  el("chart-box").hidden = points.length < 2;
+  if (points.length < 2) { return; }
+  const W = 600, H = 260, pad = 22;
+  const t0 = Date.parse(points[0].at), t1 = Date.parse(points[points.length - 1].at);
+  const maxRam = Math.max(...points.map(p => p.ramAvailGB), 1);
+  const maxDisk = Math.max(...points.map(p => p.diskFreeGB), 1);
+  const x = p => pad + (W - 2 * pad) * (t1 === t0 ? 0 : (Date.parse(p.at) - t0) / (t1 - t0));
+  const y = (v, max) => H - pad - (H - 2 * pad) * (v / max);
+  for (let i = 0; i <= 4; i++) {
+    const line = document.createElementNS(ns, "line");
+    const yy = pad + (H - 2 * pad) * i / 4;
+    line.setAttribute("x1", pad); line.setAttribute("x2", W - pad); line.setAttribute("y1", yy); line.setAttribute("y2", yy);
+    line.setAttribute("class", "grid-line");
+    svg.append(line);
+  }
+  el("chart-start").textContent = dayTime(points[0].at);
+  el("chart-end").textContent = dayTime(points[points.length - 1].at);
+  el("key-ram").textContent = "Mémoire disponible, max " + gb(maxRam);
+  el("key-disk").textContent = "Disque libre, max " + gb(maxDisk);
+  for (const [cls, key, max] of [["ram", "ramAvailGB", maxRam], ["disk", "diskFreeGB", maxDisk]]) {
+    const pl = document.createElementNS(ns, "polyline");
+    pl.setAttribute("class", cls);
+    pl.setAttribute("points", points.map(p => x(p).toFixed(1) + "," + y(p[key], max).toFixed(1)).join(" "));
+    svg.append(pl);
+  }
+}
+
+// ------------------------------------------------------------------ cycle de rafraichissement
 async function refresh() {
   try {
-    const res = await fetch("/api/state", { credentials: "same-origin", cache: "no-store" });
-    if (!res.ok) { throw new Error("HTTP " + res.status); }
-    render(await res.json());
-  } catch (e) {
+    const r = await api("/api/state");
+    renderState(r.body);
+  } catch (err) {
     const health = el("health");
-    health.textContent = "Erreur : " + e.message;
+    health.textContent = "FreePC ne répond pas (" + err.message + ")";
     health.dataset.level = "crit";
   }
 }
 
 (async function init() {
   try {
-    const h = await (await fetch("/api/health", { credentials: "same-origin" })).json();
+    const h = (await api("/api/health")).body;
     el("version").textContent = "v" + h.version;
   } catch { /* la version n'est qu'informative */ }
+  showView(location.hash.slice(1) || "dashboard");
   await refresh();
   setInterval(refresh, REFRESH_MS);
 })();

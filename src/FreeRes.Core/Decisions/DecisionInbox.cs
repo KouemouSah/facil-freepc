@@ -36,7 +36,7 @@ public sealed class DecisionInbox(FreeResDatabase db, ActionCatalog catalog, Tim
         db.UpsertPending(new PendingProposal(proposal, def.RequiresAdmin, existing?.CreatedAt ?? now, now));
         if (existing is null)
         {
-            log.Write(LogLevel.Info, "proposal", $"Nouvelle proposition : {proposal.Id} - {proposal.Title}");
+            log.Write(LogLevel.Info, "proposal", $"Nouvelle proposition : {proposal.Title}", new Dictionary<string, object?> { ["id"] = proposal.Id });
             return true;
         }
 
@@ -63,10 +63,24 @@ public sealed class DecisionInbox(FreeResDatabase db, ActionCatalog catalog, Tim
         }
 
         var now = time.GetLocalNow();
+        var title = db.GetPending(id)?.Proposal.Title;
         db.SetDecision(new DecisionRecord(id, kind, now, kind == DecisionKind.Approved ? null : now + duration));
         db.RemovePending(id);
-        log.Write(LogLevel.Info, "decision", $"{id} -> {kind}");
+        log.Write(
+            LogLevel.Info,
+            "decision",
+            $"{Verb(kind)} : {title ?? id}",
+            new Dictionary<string, object?> { ["id"] = id, ["kind"] = kind.ToString(), ["until"] = kind == DecisionKind.Approved ? null : now + duration });
     }
+
+    /// <summary>Libelle de la decision dans le journal (affiche tel quel dans l'historique).</summary>
+    private static string Verb(DecisionKind kind) => kind switch
+    {
+        DecisionKind.Approved => "Appliquée",
+        DecisionKind.Snoozed => "Reportée",
+        DecisionKind.Rejected => "Ignorée",
+        _ => kind.ToString(),
+    };
 
     /// <summary>Retire les propositions dont la condition a disparu. Retourne le nombre retire.</summary>
     public int RemoveStale(IReadOnlySet<string> activeIds)

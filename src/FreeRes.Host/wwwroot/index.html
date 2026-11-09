@@ -4,63 +4,182 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Facil FreePC</title>
+  <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <main class="shell">
-    <header class="top">
-      <img class="brand" src="logo.png" alt="Facil" width="118" height="50">
-      <div class="title">
-        <h1>FreePC</h1>
-        <span id="version" class="muted">…</span>
+  <div class="app">
+    <header class="bar">
+      <picture>
+        <source srcset="logo-dark.png" media="(prefers-color-scheme: dark)">
+        <img class="logo" src="logo.png" alt="Facil" width="94" height="40">
+      </picture>
+      <div class="product">
+        <span class="name">FreePC</span>
+        <span id="version" class="muted"></span>
       </div>
-      <div id="health" class="pill" aria-live="polite">Connexion…</div>
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button role="tab" id="tab-dashboard" data-view="dashboard" aria-selected="true">Tableau de bord</button>
+        <button role="tab" id="tab-apps" data-view="apps" aria-selected="false">Applications</button>
+        <button role="tab" id="tab-browsers" data-view="browsers" aria-selected="false">Navigateurs</button>
+        <button role="tab" id="tab-ai" data-view="ai" aria-selected="false">IA</button>
+        <button role="tab" id="tab-docker" data-view="docker" aria-selected="false">Docker</button>
+        <button role="tab" id="tab-history" data-view="history" aria-selected="false">Historique</button>
+        <button role="tab" id="tab-help" data-view="help" aria-selected="false">Comment ça marche</button>
+      </nav>
+      <div class="status">
+        <span id="health" class="health" aria-live="polite">Connexion…</span>
+        <button id="analyze" class="ghost" type="button">Analyser maintenant</button>
+      </div>
     </header>
 
-    <section class="gauges" aria-label="Ressources">
-      <article class="card gauge" id="g-ram">
-        <h2>Mémoire disponible</h2>
-        <p class="big"><span data-v>…</span></p>
-        <div class="bar"><span data-b></span></div>
-        <p class="muted small" data-s>…</p>
-      </article>
-      <article class="card gauge" id="g-commit">
-        <h2>Mémoire engagée</h2>
-        <p class="big"><span data-v>…</span></p>
-        <div class="bar"><span data-b></span></div>
-        <p class="muted small" data-s>…</p>
-      </article>
-      <article class="card gauge" id="g-disk">
-        <h2>Disque système libre</h2>
-        <p class="big"><span data-v>…</span></p>
-        <div class="bar"><span data-b></span></div>
-        <p class="muted small" data-s>…</p>
-      </article>
-    </section>
+    <main class="views">
+      <!-- Tableau de bord -->
+      <section class="view dashboard" id="view-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+        <aside class="vitals" aria-label="État du PC">
+          <div class="meter" id="m-ram">
+            <div class="meter-head"><h2>Mémoire disponible</h2><span class="value" data-v></span></div>
+            <div class="track"><span class="fill" data-b></span><i class="mark warn" data-w></i><i class="mark crit" data-c></i></div>
+            <p class="hint" data-s></p>
+          </div>
+          <div class="meter" id="m-commit">
+            <div class="meter-head"><h2>Mémoire engagée</h2><span class="value" data-v></span></div>
+            <div class="track"><span class="fill" data-b></span><i class="mark warn" data-w></i><i class="mark crit" data-c></i></div>
+            <p class="hint" data-s></p>
+          </div>
+          <div class="meter" id="m-disk">
+            <div class="meter-head"><h2>Disque système libre</h2><span class="value" data-v></span></div>
+            <div class="track"><span class="fill" data-b></span><i class="mark warn" data-w></i><i class="mark crit" data-c></i></div>
+            <p class="hint" data-s></p>
+          </div>
+          <div class="consumers">
+            <h2>Plus gros consommateurs</h2>
+            <ol id="top" class="rank"></ol>
+          </div>
+        </aside>
 
-    <section class="cols">
-      <article class="card">
-        <h2>Plus gros consommateurs</h2>
-        <ol id="top" class="top-list"></ol>
-      </article>
-      <article class="card">
-        <h2>Décisions en attente <span id="pending-count" class="count">0</span></h2>
-        <ul id="pending" class="pending"></ul>
-        <p id="pending-empty" class="muted">Aucune décision en attente.</p>
-      </article>
-    </section>
+        <section class="decisions" aria-labelledby="decisions-title">
+          <div class="section-head">
+            <h2 id="decisions-title">Décisions <span id="pending-count" class="count">0</span></h2>
+            <p id="busy" class="busy" hidden>Action en cours…</p>
+          </div>
+          <p id="feedback" class="feedback" role="status" aria-live="polite" hidden></p>
+          <ul id="pending" class="queue scroll"></ul>
+          <div id="pending-empty" class="empty" hidden>
+            <p class="empty-title">Rien à décider pour l'instant.</p>
+            <p class="muted">FreePC surveille votre PC et vous préviendra dès qu'une action sera utile.</p>
+          </div>
+          <div class="auto">
+            <h2>Fait automatiquement</h2>
+            <ul id="auto" class="log compact"></ul>
+            <p id="auto-empty" class="muted small">Aucune action automatique récente.</p>
+          </div>
+        </section>
+      </section>
 
-    <section id="warnings" class="card warn" hidden>
-      <h2>Réglages</h2>
-      <ul id="warning-list"></ul>
-    </section>
+      <!-- Applications -->
+      <section class="view split" id="view-apps" role="tabpanel" aria-labelledby="tab-apps" hidden>
+        <article class="panel">
+          <div class="section-head"><h2>Consommation des applications</h2><span id="apps-meta" class="muted small"></span></div>
+          <table class="grid usage"><thead><tr><th>Application</th><th class="num">Processus</th><th class="num">Mémoire</th><th>Mode</th></tr></thead></table>
+          <div class="scroll"><table class="grid usage"><tbody id="apps-usage"></tbody></table></div>
+        </article>
+        <article class="panel">
+          <div class="section-head"><h2>Démarre avec Windows</h2><span id="startup-meta" class="muted small"></span></div>
+          <table class="grid startup"><thead><tr><th>Élément</th><th>Type</th><th>État</th></tr></thead></table>
+          <div class="scroll"><table class="grid startup"><tbody id="apps-startup"></tbody></table></div>
+        </article>
+      </section>
 
-    <footer class="muted foot">
-      <span id="machine">…</span><br>
-      <span id="cycle">…</span><br>
-      Facil FreePC — une solution de la marque Facil · © 2026 EMAC SAH AI Solutions Architect
+      <!-- Navigateurs -->
+      <section class="view single" id="view-browsers" role="tabpanel" aria-labelledby="tab-browsers" hidden>
+        <article class="panel">
+          <div class="section-head"><h2>Navigateurs installés</h2><span class="muted small">Les onglets inactifs sont mis en veille par le navigateur lui-même ; le redémarrage reste votre décision.</span></div>
+          <div class="scroll"><ul id="browsers" class="cards"></ul></div>
+        </article>
+      </section>
+
+      <!-- IA -->
+      <section class="view single" id="view-ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
+        <article class="panel">
+          <div class="section-head"><h2>Applications d'IA locales</h2><span class="muted small">Un modèle déchargé n'est jamais supprimé : il se recharge à la demande suivante.</span></div>
+          <div class="scroll"><ul id="ai" class="cards"></ul></div>
+        </article>
+      </section>
+
+      <!-- Docker -->
+      <section class="view single" id="view-docker" role="tabpanel" aria-labelledby="tab-docker" hidden>
+        <article class="panel">
+          <div class="section-head"><h2>Docker et WSL</h2><span class="muted small">Les volumes (vos données) ne sont jamais purgés.</span></div>
+          <div id="docker" class="scroll"></div>
+        </article>
+      </section>
+
+      <!-- Historique -->
+      <section class="view split history" id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+        <article class="panel">
+          <div class="section-head"><h2>Dernières 24 heures</h2></div>
+          <figure class="chart" id="chart-box">
+            <svg id="chart" viewBox="0 0 600 260" preserveAspectRatio="none" role="img" aria-label="Mémoire disponible et disque libre sur 24 heures"></svg>
+            <div class="axis small muted"><span id="chart-start"></span><span id="chart-end"></span></div>
+            <figcaption class="legend"><span class="key ram" id="key-ram">Mémoire disponible</span><span class="key disk" id="key-disk">Disque libre</span><span class="muted">Chaque courbe va de zéro (bas) à son maximum (haut).</span></figcaption>
+          </figure>
+          <p id="chart-empty" class="muted" hidden>Pas encore assez de mesures.</p>
+        </article>
+        <article class="panel">
+          <div class="section-head"><h2>Actions et décisions</h2></div>
+          <ul id="history" class="log scroll"></ul>
+          <p id="history-empty" class="muted" hidden>Aucun événement pour l'instant.</p>
+        </article>
+      </section>
+
+      <!-- Comment ça marche -->
+      <section class="view help" id="view-help" role="tabpanel" aria-labelledby="tab-help" hidden>
+        <ol class="steps">
+          <li>
+            <h2>FreePC surveille</h2>
+            <p>Toutes les quelques minutes, il mesure la mémoire disponible, la mémoire engagée (mémoire vive et fichier d'échange) et l'espace libre du disque système. Les seuils d'alerte sont calculés pour la mémoire de votre PC.</p>
+            <p>Il regarde aussi ce qui consomme : applications et ce qui démarre avec Windows, navigateurs, applications d'IA, Docker et le nettoyage de Windows.</p>
+          </li>
+          <li>
+            <h2>Il propose</h2>
+            <p>Chaque piste utile devient une décision, avec son gain estimé et son explication. Les décisions critiques passent en premier. Une notification vous prévient ; si l'état devient critique pendant que vous êtes là, la fenêtre s'ouvre.</p>
+            <p>Seules les actions sans aucun risque se font seules, par exemple arrêter la machine virtuelle de Docker restée allumée sans Docker.</p>
+          </li>
+          <li>
+            <h2>Vous décidez</h2>
+            <p><strong>Appliquer</strong> lance l'action et affiche le résultat réel. Si l'action demande les droits administrateur, Windows vous demande votre accord pour elle seule.</p>
+            <p><strong>Plus tard</strong> la met de côté quelques heures, <strong>Ignorer</strong> pour plusieurs jours. Une décision disparaît d'elle-même quand la situation ne la justifie plus.</p>
+          </li>
+        </ol>
+        <div class="promises">
+          <article>
+            <h2>Ce que FreePC ne fait jamais</h2>
+            <ul>
+              <li>Désinstaller un programme, supprimer vos fichiers, vos modèles d'IA ou vos volumes Docker.</li>
+              <li>Forcer la fermeture d'un navigateur ou d'un programme inconnu.</li>
+              <li>Toucher aux composants de Windows, aux logiciels de sécurité et aux pilotes.</li>
+              <li>Garder des droits administrateur : chaque action administrateur est demandée une à une.</li>
+            </ul>
+          </article>
+          <article>
+            <h2>Vos données restent sur ce PC</h2>
+            <ul>
+              <li>Aucune télémétrie, aucun compte, aucun envoi.</li>
+              <li>Cette fenêtre parle uniquement à FreePC sur votre propre PC, protégée par un jeton de session.</li>
+              <li>Mesures, décisions et journal : <span id="data-dir" class="path"></span></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot muted small">
+      <span id="machine"></span>
+      <span id="cycle"></span>
+      <span>Facil FreePC, une solution Facil. © 2026 EMAC SAH AI Solutions Architect</span>
     </footer>
-  </main>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>

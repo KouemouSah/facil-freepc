@@ -19,6 +19,9 @@ public sealed record DockerDiskUsage(
     double? BuildCacheGB = null,
     double? BuildCacheReclaimableGB = null);
 
+/// <summary>Etat Docker expose a l'interface (Installed/Running : dernier cycle).</summary>
+public sealed record DockerStatus(bool Installed, bool Running, DockerDiskUsage? Usage, DateTimeOffset? TrimmedAt, DateTimeOffset? CompactedAt);
+
 /// <summary>Repartition rendue par « docker system df » (en GB, tels qu'affiches par Docker).</summary>
 public sealed record DockerSystemDf(
     double? ImagesGB,

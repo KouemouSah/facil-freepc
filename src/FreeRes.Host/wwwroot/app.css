@@ -1,95 +1,327 @@
+/* Facil FreePC : interface de bureau (WebView2). La page tient dans la fenetre ; seules les listes defilent. */
 :root {
-  --bg: #f6f7f9;
+  --bg: #eef1ee;
   --surface: #ffffff;
-  --text: #1c2230;
-  --muted: #5d6676;
-  --border: #dfe3ea;
-  --track: #e9edf2;
+  --sunken: #f5f7f5;
+  --ink: #1a1a1a;
+  --muted: #5b625b;
+  --line: #d9dfd9;
+  --track: #e2e7e2;
   --brand: #4c9a16;
-  --ok: #1f7a4d;
+  --brand-ink: #ffffff;
+  --brand-soft: #e6f2dc;
   --warn: #b25e09;
+  --warn-soft: #fbeedd;
   --crit: #b42318;
+  --crit-soft: #fbe4e1;
+  --radius-s: 4px;
+  --radius-m: 8px;
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #12151b;
-    --surface: #1b2029;
-    --text: #e6e9ef;
-    --muted: #9aa3b2;
-    --border: #2c3340;
-    --track: #2a313d;
-    --ok: #4cc38a;
+    --bg: #141714;
+    --surface: #1d211d;
+    --sunken: #181b18;
+    --ink: #e8ece8;
+    --muted: #9ba49b;
+    --line: #2e342e;
+    --track: #2b312b;
+    --brand: #6cc22e;
+    --brand-ink: #0f1a07;
+    --brand-soft: #24331a;
     --warn: #f0a94b;
+    --warn-soft: #3a2a14;
     --crit: #ff7a6b;
+    --crit-soft: #3d1c19;
   }
 }
 
 * { box-sizing: border-box; }
 
+/* L'attribut hidden doit toujours l'emporter sur un display de composant (.empty, .queue...). */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--text);
-  font: 14px/1.45 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  color: var(--ink);
+  font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  overflow: hidden;   /* aucune barre de defilement de page : les zones de liste defilent seules */
 }
 
-.shell { max-width: 1180px; margin: 0 auto; padding: 18px 20px; }
-
-.top { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
-.title h1 { margin: 0; font-size: 22px; line-height: 1.1; }
-.brand { display: block; height: 46px; width: auto; }
-@media (prefers-color-scheme: dark) { .brand { background: #fff; border-radius: 8px; padding: 4px 8px; } }
-
-.pill {
-  margin-left: auto; padding: 4px 12px; border-radius: 999px; font-weight: 600;
-  border: 1px solid var(--border); background: var(--surface);
-}
-.pill[data-level="ok"] { color: var(--ok); }
-.pill[data-level="crit"] { color: var(--crit); border-color: var(--crit); }
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 16px;
-}
-.card h2 { margin: 0 0 6px; font-size: 14px; font-weight: 600; color: var(--muted); }
-
-.gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
-.big { margin: 0 0 8px; font-size: 26px; font-weight: 600; }
-.bar { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
-.bar span { display: block; height: 100%; width: 0; background: var(--ok); transition: width .4s ease; }
-.gauge[data-level="warn"] .bar span { background: var(--warn); }
-.gauge[data-level="crit"] .bar span { background: var(--crit); }
-.gauge[data-level="warn"] .big { color: var(--warn); }
-.gauge[data-level="crit"] .big { color: var(--crit); }
-
-.cols { display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px; }
-
-.top-list { margin: 0; padding-left: 20px; }
-.top-list li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
-.num { font-variant-numeric: tabular-nums; color: var(--muted); }
-
-.count {
-  display: inline-block; min-width: 22px; padding: 0 6px; margin-left: 4px; border-radius: 999px;
-  background: var(--track); color: var(--text); text-align: center; font-size: 12px;
-}
-.pending { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.pending li { border-left: 3px solid var(--border); padding: 2px 0 2px 10px; }
-.pending li[data-severity="Crit"] { border-color: var(--crit); }
-.pending li[data-severity="Warn"] { border-color: var(--warn); }
-.pending p { margin: 2px 0 0; }
-.sev { font-size: 12px; font-weight: 600; margin-right: 8px; color: var(--muted); }
-
-.warn { margin-top: 12px; border-color: var(--warn); }
-.warn ul { margin: 0; padding-left: 18px; }
+h1, h2, h3, p, ul, ol, figure { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button { font: inherit; color: inherit; }
 
 .muted { color: var(--muted); }
-.small { font-size: 12px; }
-.foot { margin-top: 14px; font-size: 12px; line-height: 1.6; }
+.small { font-size: 12.5px; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
 
-@media (max-width: 760px) {
-  .gauges, .cols { grid-template-columns: 1fr; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.app {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ barre */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 18px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.logo { display: block; height: 30px; width: auto; }
+
+.product { display: flex; align-items: baseline; gap: 6px; }
+.product .name { font: 600 18px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif; letter-spacing: -0.01em; }
+
+.tabs { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tabs button {
+  border: 0;
+  background: none;
+  padding: 7px 11px;
+  border-radius: var(--radius-s);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tabs button:hover { color: var(--ink); background: var(--sunken); }
+.tabs button[aria-selected="true"] { color: var(--ink); background: var(--brand-soft); font-weight: 600; }
+
+.status { display: flex; align-items: center; gap: 10px; }
+.health { font-size: 12.5px; padding-left: 14px; position: relative; white-space: nowrap; }
+.health::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.health[data-level="crit"]::before { background: var(--crit); }
+.health[data-level="warn"]::before { background: var(--warn); }
+
+.ghost, .btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-s);
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ghost:hover, .btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+button:disabled { opacity: 0.55; cursor: progress; }
+
+/* ------------------------------------------------------------------ vues */
+.views { min-height: 0; padding: 14px 18px; }
+.view { height: 100%; min-height: 0; }
+.view[hidden] { display: none; }
+
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+h2 { font: 600 14px/1.3 "Segoe UI Variable Display", "Segoe UI", sans-serif; }
+
+.scroll { overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 14px 16px;
+}
+.panel > .scroll { flex: 1; }
+
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.single { display: grid; }
+
+/* ------------------------------------------------------------------ tableau de bord */
+.dashboard { display: grid; grid-template-columns: minmax(250px, 300px) 1fr; gap: 14px; }
+
+.vitals {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+
+.meter-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.meter h2 { font-weight: 500; color: var(--muted); }
+.meter .value { font: 650 24px/1.1 "Segoe UI Variable Display", "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; }
+.meter[data-level="warn"] .value { color: var(--warn); }
+.meter[data-level="crit"] .value { color: var(--crit); }
+
+/* Jauge « pression » : les seuils d'alerte et critique sont traces sur la piste. */
+.track { position: relative; height: 10px; margin: 8px 0 6px; border-radius: 5px; background: var(--track); }
+.fill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--brand); transition: width 400ms ease; }
+.meter[data-level="warn"] .fill { background: var(--warn); }
+.meter[data-level="crit"] .fill { background: var(--crit); }
+.mark { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 1px; }
+.mark.warn { background: var(--warn); }
+.mark.crit { background: var(--crit); }
+.hint { font-size: 12px; color: var(--muted); }
+
+.consumers { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.consumers h2 { margin-bottom: 6px; }
+.rank { overflow-y: auto; min-height: 0; }
+.rank li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.rank li:last-child { border-bottom: 0; }
+.rank .num { color: var(--muted); }
+
+.decisions { display: flex; flex-direction: column; min-height: 0; }
+.count {
+  display: inline-block;
+  min-width: 22px;
+  padding: 0 6px;
+  margin-left: 4px;
+  border-radius: 11px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.busy { font-size: 12.5px; color: var(--warn); }
+
+.feedback { padding: 8px 12px; margin-bottom: 10px; border-radius: var(--radius-s); background: var(--brand-soft); }
+.feedback[data-ok="false"] { background: var(--crit-soft); }
+
+.queue { flex: 1; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+.queue > li { flex: none; }
+
+.decision {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 16px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--muted);
+  border-radius: var(--radius-s) var(--radius-m) var(--radius-m) var(--radius-s);
+}
+.decision[data-severity="Warn"] { border-left-color: var(--warn); }
+.decision[data-severity="Crit"] { border-left-color: var(--crit); background: linear-gradient(90deg, var(--crit-soft), var(--surface) 40%); }
+.decision .title { font-weight: 600; }
+.decision .detail { grid-column: 1; color: var(--muted); font-size: 13px; max-width: 78ch; }
+.decision .title, .decision .tags { grid-column: 1; }
+.decision .tags { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.decision .tag.sev-Crit { color: var(--crit); font-weight: 600; }
+.decision .tag.sev-Warn { color: var(--warn); font-weight: 600; }
+.decision .actions { grid-column: 2; grid-row: 1 / span 3; display: flex; gap: 6px; }
+
+.empty { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 4px; padding: 0 4px; }
+.empty-title { font: 600 18px/1.3 "Segoe UI Variable Display", "Segoe UI", sans-serif; }
+
+.auto { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.auto h2 { margin-bottom: 4px; color: var(--muted); font-weight: 500; }
+
+.log li { display: grid; grid-template-columns: 92px 1fr auto; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.log li:last-child { border-bottom: 0; }
+.log .when { color: var(--muted); font-variant-numeric: tabular-nums; }
+.log li[data-ok="false"] .what { color: var(--crit); }
+.log .gain { color: var(--brand); font-variant-numeric: tabular-nums; }
+.log.compact li { padding: 3px 0; }
+
+/* ------------------------------------------------------------------ tableaux, fiches */
+.grid { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
+.grid th { text-align: left; font-weight: 500; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.grid td { padding: 6px 8px; border-bottom: 1px solid var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grid th.num { text-align: right; }
+/* Largeurs fixes des colonnes courtes : le nom prend le reste (en-tete et corps sont deux tableaux). */
+.usage th:nth-child(2), .usage td:nth-child(2) { width: 84px; }
+.usage th:nth-child(3), .usage td:nth-child(3) { width: 84px; }
+.usage th:nth-child(4), .usage td:nth-child(4) { width: 118px; }
+.startup th:nth-child(2), .startup td:nth-child(2) { width: 150px; }
+.startup th:nth-child(3), .startup td:nth-child(3) { width: 100px; }
+.pill { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; background: var(--sunken); border: 1px solid var(--line); }
+.pill.on { background: var(--brand-soft); border-color: transparent; }
+.pill.bg { background: var(--warn-soft); border-color: transparent; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.card { border: 1px solid var(--line); border-radius: var(--radius-m); padding: 12px 14px; background: var(--sunken); }
+.card .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.card h3 { font: 600 15px/1.3 "Segoe UI Variable Display", "Segoe UI", sans-serif; }
+.card .big { font: 650 20px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; }
+.card dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-size: 13px; }
+.card dt { color: var(--muted); }
+.card dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.empty-panel { padding: 24px 4px; }
+
+.path { font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------------------ historique */
+.chart { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.chart svg { flex: 1; width: 100%; min-height: 0; }
+.chart .grid-line { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart .ram { fill: none; stroke: var(--brand); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.chart .disk { fill: none; stroke: var(--warn); stroke-width: 2; stroke-dasharray: 5 3; vector-effect: non-scaling-stroke; }
+.axis { display: flex; justify-content: space-between; padding: 2px 4px 0; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.key::before { content: ""; display: inline-block; width: 16px; height: 0; margin-right: 6px; vertical-align: middle; border-top: 2px solid var(--brand); }
+.key.disk::before { border-top: 2px dashed var(--warn); }
+.history .log { flex: 1; }
+
+/* ------------------------------------------------------------------ comment ca marche */
+.help { display: grid; grid-template-rows: 1fr auto; gap: 14px; overflow-y: auto; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; counter-reset: step; }
+.steps li {
+  counter-increment: step;
+  position: relative;
+  padding: 16px 18px 16px 62px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 18px;
+  top: 12px;
+  font: 700 32px/1 "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  color: var(--brand);
+}
+.steps h2 { font-size: 16px; margin-bottom: 6px; }
+.steps p { color: var(--muted); font-size: 13px; max-width: 70ch; }
+.steps p + p { margin-top: 6px; }
+.promises { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.promises article { padding: 14px 18px; border-radius: var(--radius-m); background: var(--sunken); border: 1px solid var(--line); }
+.promises h2 { margin-bottom: 6px; }
+.promises li { position: relative; padding-left: 16px; font-size: 13px; color: var(--muted); margin-top: 3px; }
+.promises li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+
+/* ------------------------------------------------------------------ pied */
+.foot { display: flex; gap: 18px; padding: 6px 18px; border-top: 1px solid var(--line); background: var(--surface); white-space: nowrap; overflow: hidden; }
+.foot span:last-child { margin-left: auto; }
+
+/* Fenetre etroite : colonnes empilees, la page peut alors defiler. */
+@media (max-width: 860px) {
+  body { overflow: auto; }
+  .app { height: auto; min-height: 100vh; }
+  .bar { flex-wrap: wrap; }
+  .dashboard, .split, .steps, .promises { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill { transition: none; }
 }

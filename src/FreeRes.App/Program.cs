@@ -63,7 +63,7 @@ internal static class Program
             host.StartAsync().GetAwaiter().GetResult();
             try
             {
-                using var context = new TrayContext(host, paths, openWindow: !args.Contains("--background", StringComparer.OrdinalIgnoreCase));
+                using var context = new TrayContext(host, paths, runtime.Engine, openWindow: !args.Contains("--background", StringComparer.OrdinalIgnoreCase));
                 Application.Run(context);
             }
             finally

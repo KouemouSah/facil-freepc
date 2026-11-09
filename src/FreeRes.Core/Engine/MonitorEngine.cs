@@ -29,6 +29,14 @@ public interface IResourceModule
     Task<ModuleEvaluation> EvaluateAsync(EngineContext context, CancellationToken cancellationToken);
 }
 
+/// <summary>Module qui expose son dernier etat a l'interface (lecture seule, null avant le premier cycle).</summary>
+public interface IStatusSource
+{
+    string Name { get; }
+
+    object? CurrentStatus { get; }
+}
+
 /// <summary>Compte rendu d'un cycle de surveillance.</summary>
 public sealed record CycleReport(
     DateTimeOffset At,
@@ -60,6 +68,19 @@ public sealed class MonitorEngine(
     internal const string LastRetentionKey = "lastRetentionAt";
     private readonly Dictionary<string, IReadOnlySet<string>> _lastIdsByModule = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _cycleGate = new(1, 1);
+
+    // Decisions de l'utilisateur executees une par une : un double clic ne peut pas lancer deux fois une action.
+    // Verrou distinct du cycle : une action longue (compactage) ne bloque pas la surveillance.
+    private readonly SemaphoreSlim _decisionGate = new(1, 1);
+
+    internal const string LastWindowKey = "lastWindowAt";
+    internal const string LastToastKey = "lastToastAt";
+
+    /// <summary>Fin de chaque cycle (thread d'arriere-plan) : l'application y applique l'escalade.</summary>
+    public event EventHandler<CycleReport>? CycleCompleted;
+
+    /// <summary>Modules exposant leur etat a l'interface.</summary>
+    public IReadOnlyList<IStatusSource> StatusSources { get; } = modules.OfType<IStatusSource>().ToList();
 
     public MachineProfile Profile => profile;
 
@@ -147,7 +168,7 @@ public sealed class MonitorEngine(
             {
                 try
                 {
-                    var autoResult = await dispatcher.ExecuteAsync(auto, dryRun: false, cancellationToken).ConfigureAwait(false);
+                    var autoResult = await dispatcher.ExecuteAsync(auto, dryRun: false, cancellationToken, automatic: true).ConfigureAwait(false);
                     autoResults.Add(autoResult);
                     NotifyObservers(auto, autoResult);
                 }
@@ -168,8 +189,8 @@ public sealed class MonitorEngine(
             settings.Notification,
             newCount,
             pending.Count,
-            ReadDate("lastWindowAt"),
-            ReadDate("lastToastAt"),
+            ReadDate(LastWindowKey),
+            ReadDate(LastToastKey),
             now);
 
         ApplyRetentionIfDue(now);
@@ -180,27 +201,68 @@ public sealed class MonitorEngine(
 
         var report = new CycleReport(now, snapshot, newCount, pending.Count, staleRemoved, escalation, autoResults, errors);
         LastReport = report;
+        try
+        {
+            CycleCompleted?.Invoke(this, report);
+        }
+#pragma warning disable CA1031 // Un abonne defaillant (interface) ne doit pas faire echouer la surveillance.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            log.Write(LogLevel.Error, "monitor", $"Abonne de fin de cycle en echec : {ex.Message}");
+        }
+
         return report;
+    }
+
+    /// <summary>
+    /// A appeler quand l'escalade a REELLEMENT ete presentee (notification affichee, fenetre ouverte) : demarre
+    /// le delai anti-repetition. Une escalade non presentee (application sans interface) ne compte pas.
+    /// </summary>
+    public void RecordEscalation(EscalationMode mode)
+    {
+        var key = mode switch
+        {
+            EscalationMode.Toast => LastToastKey,
+            EscalationMode.Window => LastWindowKey,
+            _ => null,
+        };
+        if (key is not null)
+        {
+            db.SetState(key, FreeResDatabase.Iso(time.GetLocalNow()));
+        }
     }
 
     /// <summary>
     /// Approuve une proposition : execute son action (avec demande UAC si elle exige l'administrateur), puis
     /// enregistre la decision si elle a ete tentee. Une elevation refusee ou une action rejetee laisse la proposition en place.
+    /// Les decisions sont executees une par une ; la proposition est relue APRES l'attente (deja traitee = inconnue).
     /// </summary>
     public async Task<ActionResult> ApproveAsync(string id, CancellationToken cancellationToken)
     {
-        var pending = queue.Get(id) ?? throw new KeyNotFoundException($"Proposition inconnue ou deja traitee : {id}");
-        var result = await dispatcher.ExecuteAsync(pending.Proposal.Action, dryRun: false, cancellationToken, allowElevation: true).ConfigureAwait(false);
-        if (result.Message.StartsWith(ElevationCancelledPrefix, StringComparison.Ordinal))
+        await _decisionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            return result;   // l'utilisateur a refuse l'UAC : rien n'a ete tente, la proposition reste
-        }
+            var pending = queue.Get(id) ?? throw new KeyNotFoundException($"Proposition inconnue ou deja traitee : {id}");
+            var result = await dispatcher.ExecuteAsync(pending.Proposal.Action, dryRun: false, cancellationToken, allowElevation: true).ConfigureAwait(false);
+            if (result.Message.StartsWith(ElevationCancelledPrefix, StringComparison.Ordinal))
+            {
+                return result;   // l'utilisateur a refuse l'UAC : rien n'a ete tente, la proposition reste
+            }
 
-        queue.Decide(id, DecisionKind.Approved);
-        NotifyObservers(pending.Proposal.Action, result);
-        db.AddMetrics(probe.Capture(), "approve", Math.Max(0d, result.DiskDeltaGB));
-        return result;
+            queue.Decide(id, DecisionKind.Approved);
+            NotifyObservers(pending.Proposal.Action, result);
+            db.AddMetrics(probe.Capture(), "approve", Math.Max(0d, result.DiskDeltaGB));
+            return result;
+        }
+        finally
+        {
+            _decisionGate.Release();
+        }
     }
+
+    /// <summary>Une decision est-elle en cours d'execution (affichage « action en cours »).</summary>
+    public bool DecisionInProgress => _decisionGate.CurrentCount == 0;
 
     /// <summary>Debut du message rendu quand l'utilisateur refuse la demande UAC.</summary>
     public const string ElevationCancelledPrefix = "Elevation refusee";
@@ -222,9 +284,29 @@ public sealed class MonitorEngine(
         }
     }
 
-    public void Reject(string id) => queue.Decide(id, DecisionKind.Rejected, TimeSpan.FromHours(settings.RejectHours));
+    /// <summary>Ignore la proposition pendant RejectHours. KeyNotFoundException si elle n'est plus en attente.</summary>
+    public void Reject(string id) => DecideWithoutAction(id, DecisionKind.Rejected, settings.RejectHours);
 
-    public void Snooze(string id) => queue.Decide(id, DecisionKind.Snoozed, TimeSpan.FromHours(settings.SnoozeHours));
+    /// <summary>Reporte la proposition de SnoozeHours. KeyNotFoundException si elle n'est plus en attente.</summary>
+    public void Snooze(string id) => DecideWithoutAction(id, DecisionKind.Snoozed, settings.SnoozeHours);
+
+    private void DecideWithoutAction(string id, DecisionKind kind, double hours)
+    {
+        _decisionGate.Wait();
+        try
+        {
+            if (queue.Get(id) is null)
+            {
+                throw new KeyNotFoundException($"Proposition inconnue ou deja traitee : {id}");
+            }
+
+            queue.Decide(id, kind, TimeSpan.FromHours(hours));
+        }
+        finally
+        {
+            _decisionGate.Release();
+        }
+    }
 
     /// <summary>Retention au plus une fois par 24 h : historique, decisions anciennes, journaux.</summary>
     private void ApplyRetentionIfDue(DateTimeOffset now)
@@ -248,5 +330,9 @@ public sealed class MonitorEngine(
 
     private DateTimeOffset? ReadDate(string key) => db.GetState(key) is { } v ? FreeResDatabase.Parse(v) : null;
 
-    public void Dispose() => _cycleGate.Dispose();
+    public void Dispose()
+    {
+        _cycleGate.Dispose();
+        _decisionGate.Dispose();
+    }
 }

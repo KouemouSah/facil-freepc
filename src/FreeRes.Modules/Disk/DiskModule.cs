@@ -154,7 +154,7 @@ public sealed class DiskModule : IResourceModule
 
     // Le repartiteur journalise deja chaque action (avec son gain disque) : pas de double ecriture ici.
     private static ActionOutcome Outcome(string id, CleanResult r) =>
-        new(true, string.Create(CultureInfo.InvariantCulture, $"{id} : {r.FreedGB} GB, {r.Files} fichiers, {r.Dirs} dossiers, {r.Skipped} ignores"));
+        new(true, string.Create(CultureInfo.InvariantCulture, $"{id} : {r.FreedGB} GB, {r.Files} fichiers, {r.Dirs} dossiers, {r.Skipped} ignores"), Changed: r.Files + r.Dirs > 0);
 
     private double CachedSize(string key, Func<long> measure)
     {

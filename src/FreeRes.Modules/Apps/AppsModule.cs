@@ -23,7 +23,7 @@ namespace FreeRes.Modules.Apps;
 /// demander l'UAC (inutile pour HKCU, et ecrirait dans le HKCU du compte administrateur si un autre compte eleve), soit
 /// jamais (echec d'acces sur HKLM).
 /// </summary>
-public sealed partial class AppsModule : IResourceModule, IActionObserver
+public sealed partial class AppsModule : IResourceModule, IActionObserver, IStatusSource
 {
     public const string DisableStartupItem = "DisableStartupItem";
     public const string EnableStartupItem = "EnableStartupItem";
@@ -64,6 +64,8 @@ public sealed partial class AppsModule : IResourceModule, IActionObserver
 
     /// <summary>Dernier inventaire (applications, elements de demarrage, consommation), null avant le premier cycle.</summary>
     public AppsInventory? LastInventory => Volatile.Read(ref _last);
+
+    public object? CurrentStatus => LastInventory;
 
     [GeneratedRegex("^su-[0-9a-f]{16}$")]
     private static partial Regex StartupIdPattern();

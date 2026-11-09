@@ -16,6 +16,9 @@
     <Content Remove="wwwroot\**" />
     <!-- Source unique du logo de marque : assets\logo.png (servi en /logo.png). -->
     <EmbeddedResource Include="..\..\assets\logo.png" Link="wwwroot\logo.png" />
+    <EmbeddedResource Include="..\..\assets\logo-dark.png" Link="wwwroot\logo-dark.png" />
+    <!-- Icone de marque, demandee automatiquement par le moteur web (/favicon.ico). -->
+    <EmbeddedResource Include="..\..\assets\app.ico" Link="wwwroot\favicon.ico" />
   </ItemGroup>
 
   <ItemGroup>

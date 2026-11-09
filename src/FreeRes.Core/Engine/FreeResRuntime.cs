@@ -16,7 +16,7 @@ namespace FreeRes.Core.Engine;
 /// </summary>
 public sealed class FreeResRuntime : IDisposable
 {
-    private FreeResRuntime(AppPaths paths, EventLog log, FreeResDatabase db, ActionCatalog catalog, MonitorEngine engine, IReadOnlyList<string> settingsErrors)
+    private FreeResRuntime(AppPaths paths, EventLog log, FreeResDatabase db, ActionCatalog catalog, MonitorEngine engine, IReadOnlyList<string> settingsErrors, TimeProvider time)
     {
         Paths = paths;
         Log = log;
@@ -24,7 +24,10 @@ public sealed class FreeResRuntime : IDisposable
         Catalog = catalog;
         Engine = engine;
         SettingsErrors = settingsErrors;
+        Time = time;
     }
+
+    public TimeProvider Time { get; }
 
     public AppPaths Paths { get; }
 
@@ -90,7 +93,7 @@ public sealed class FreeResRuntime : IDisposable
             var engine = new MonitorEngine(probe, profile, thresholds, settings, setup.Modules, queue, dispatcher, db, log, time);
             // Journal en format invariant (separateur decimal « . ») : homogene et exploitable par des outils.
             log.Write(LogLevel.Info, "runtime", string.Create(CultureInfo.InvariantCulture, $"Demarrage {AppInfo.Name} {AppInfo.Version} sur {profile.Manufacturer} {profile.Model}, {profile.OsName} build {profile.OsBuild}, {profile.RamTotalGB} GB RAM"));
-            return new FreeResRuntime(paths, log, db, catalog, engine, errors);
+            return new FreeResRuntime(paths, log, db, catalog, engine, errors, time);
         }
         catch
         {

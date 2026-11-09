@@ -97,8 +97,13 @@ Jamais touchés : les composants Windows, les logiciels de sécurité, les pilot
 et Facil FreePC lui-même. Une action qui exige l'administrateur déclenche une demande UAC pour elle seule ;
 si vous la refusez, la proposition reste en attente.
 
-> À ce stade, les propositions sont visibles dans le tableau de bord ; les **boutons de décision** et les
-> notifications arrivent avec l'interface complète (Phase 5).
+**L'interface** tient dans la fenêtre sans défilement : à gauche l'état du PC (jauges sur lesquelles les seuils
+d'alerte et critique sont tracés, plus gros consommateurs), au centre les **décisions**, critiques d'abord, avec
+trois boutons : **Appliquer** (le résultat réel s'affiche), **Plus tard** (24 h), **Ignorer** (7 jours).
+Dessous, ce qui a été fait automatiquement. Des onglets détaillent les applications et ce qui démarre avec
+Windows, les navigateurs, l'IA, Docker, l'historique (courbes sur 24 h, actions et décisions) et
+« Comment ça marche ». Une décision nouvelle déclenche une notification Windows (cliquable) ; en état critique,
+avec l'utilisateur présent, la fenêtre s'ouvre. Un délai anti-répétition s'applique dans les deux cas.
 
 | Phase | Contenu | Statut |
 |---|---|---|
@@ -107,7 +112,7 @@ si vous la refusez, la proposition reste en attente.
 | **2 — Modules système** | Nettoyage du disque limité aux zones sûres, maintenance Windows Update (avec accord UAC), Docker et WSL s'ils sont présents, inventaire des applications et de ce qui démarre avec Windows | Terminée |
 | **3 — Navigateurs** | Détection de Firefox, Chrome, Edge, Brave, Opera et Vivaldi ; mise en veille automatique des onglets inactifs ; redémarrage propre du navigateur sur votre clic, avec contrôle de la restauration de session | En cours : module livré, extension Firefox prête (signature Mozilla en attente) |
 | **4 — IA** | Détection des applications d'IA, modèles chargés, mémoire vidéo et disque ; proposition de décharger un modèle Ollama sous tension mémoire, d'ouvrir le dossier des modèles quand le disque est plein (jamais de suppression, jamais d'arrêt du serveur) | Module livré ; essai réel avec Ollama en attente |
-| **5 — Interface** | Tableau de bord sans défilement (santé, décisions, actions faites, applications, navigateurs, IA, historique), écran « Comment ça marche », notifications Windows | À venir |
+| **5 — Interface** | Tableau de bord sans défilement (santé, décisions, actions faites, applications, navigateurs, IA, historique), écran « Comment ça marche », notifications Windows | Terminée (v0.5.0) |
 | **6 — Distribution** | Installateur final, mises à jour, tests sur Windows 10 et 11 vierges, première version publiée avec son empreinte SHA-256 | À venir |
 
 ## Installation
@@ -218,9 +223,10 @@ Tests seuls : `dotnet test FreeRes.sln`.
 |---|---|
 | `src/FreeRes.Core` | Identité, chemins de données ; **moteur** : mesures natives sans WMI (`Metrics`), profil machine (`Machine`), seuils relatifs, réglages et politique d'escalade (`Policy`), liste fermée d'actions, répartiteur et protocole d'élévation UAC (`Actions`), boîte de décisions (`Decisions`), stockage SQLite versionné (`Storage`), journal JSONL (`Logging`), lanceur de programmes à arguments séparés et entrée standard (`Platform`), cycle de surveillance et assemblage (`Engine`) |
 | `src/FreeRes.Modules` | Modules et leurs actions : `Disk` (nettoyeur sûr `SafeCleaner` + suppression par handle `SecureDelete`), `Windows` (maintenance), `Docker` (WSL/VHDX), `Apps` (inventaire, démarrage, services) ; `ModulePack` les assemble |
-| `src/FreeRes.Host` | Serveur Kestrel sur **127.0.0.1** (port choisi par le système), middleware de sécurité, boucle de surveillance en arrière-plan, API (`/api/health`, `/api/state`), interface embarquée (`wwwroot`) |
+| `src/FreeRes.Host` | Serveur Kestrel sur **127.0.0.1** (port choisi par le système), middleware de sécurité, boucle de surveillance en arrière-plan, API (`/api/health`, `/api/state`, `/api/history`, `/api/modules/{nom}`, et en POST seulement `/api/proposals/{id}/approve|snooze|reject`, `/api/cycle`), interface embarquée (`wwwroot`). L'interface ne peut que décider des propositions du moteur : aucune route n'accepte un type d'action |
 | `src/FreeRes.App` | `FacilFreePC.exe` : instance unique, icône de notification, fenêtre WebView2 avec profil dédié |
 | `tests/FreeRes.*.Tests` | xUnit : Core, sécurité du serveur par requêtes HTTP réelles, coquille Windows (instance unique, dimensionnement de la fenêtre) |
+| `tests/FreeRes.Ui.Tests` | Bout en bout avec Playwright sur le **Microsoft Edge installé** (aucun navigateur téléchargé) : décisions, vues, absence de défilement à 1177x618 en thème clair et sombre, données affichées en texte, jeton et origine ; captures dans `artifacts\ui` |
 | `installer/FacilFreePC.iss` | Inno Setup : installation par utilisateur, démarrage de session, fermeture avant mise à jour ou désinstallation |
 | `tools/New-AppIcon.ps1` | Génère `assets/app.ico` (multi-tailles) à partir de l'icône de marque |
 | `tools/New-DarkLogo.ps1` | Génère `assets/logo-dark.png`, variante du logo pour fond sombre |

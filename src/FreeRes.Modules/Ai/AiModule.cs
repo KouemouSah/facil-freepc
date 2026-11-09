@@ -86,7 +86,7 @@ public sealed class WindowsAiPlatform : IAiPlatform
 ///   * LM Studio, GPT4All, Jan : detectes et mesures ; aucune action tant qu'elle n'est pas verifiee en reel ;
 ///   * disque presque plein : proposition d'OUVRIR le dossier des modeles. JAMAIS de suppression de modele.
 /// </summary>
-public sealed class AiModule : IResourceModule
+public sealed class AiModule : IResourceModule, IStatusSource
 {
     public const string UnloadOllamaModel = "UnloadOllamaModel";
     public const string OpenModelsFolder = "OpenModelsFolder";
@@ -113,6 +113,8 @@ public sealed class AiModule : IResourceModule
     public string Name => "ai";
 
     public IReadOnlyList<AiAppStatus> LastStatus => Volatile.Read(ref _last);
+
+    public object? CurrentStatus => LastStatus;
 
     /// <summary>Emplacements par defaut. Ollama : OLLAMA_MODELS sinon %USERPROFILE%\.ollama\models.</summary>
     public static IReadOnlyList<AiAppDefinition> DefaultApps()

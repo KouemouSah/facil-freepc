@@ -30,8 +30,9 @@ public sealed class ActionDispatcher(ActionCatalog catalog, IElevation elevation
     /// <summary>
     /// <paramref name="allowElevation"/> : true UNIQUEMENT pour une action approuvee par l'utilisateur ; une action
     /// administrateur declenche alors une demande UAC pour elle seule. Les actions automatiques ne demandent jamais d'elevation.
+    /// <paramref name="automatic"/> : action decidee par le moteur (journal « auto », affiche « Fait automatiquement »).
     /// </summary>
-    public async Task<ActionResult> ExecuteAsync(ActionRequest request, bool dryRun, CancellationToken cancellationToken, bool allowElevation = false)
+    public async Task<ActionResult> ExecuteAsync(ActionRequest request, bool dryRun, CancellationToken cancellationToken, bool allowElevation = false, bool automatic = false)
     {
         var def = catalog.Resolve(request);   // leve ActionRejectedException : refus avant toute execution
         if (def.RequiresAdmin && !dryRun && !elevation.IsAdministrator)
@@ -46,7 +47,7 @@ public sealed class ActionDispatcher(ActionCatalog catalog, IElevation elevation
                 elevated.Ok ? LogLevel.Action : LogLevel.Error,
                 "action",
                 $"{request.Type} (eleve) : {elevated.Message}",
-                new Dictionary<string, object?> { ["diskDeltaGB"] = elevated.DiskDeltaGB, ["elevated"] = true });
+                new Dictionary<string, object?> { ["type"] = request.Type, ["diskDeltaGB"] = elevated.DiskDeltaGB, ["elevated"] = true });
             return elevated;
         }
 
@@ -73,7 +74,7 @@ public sealed class ActionDispatcher(ActionCatalog catalog, IElevation elevation
             outcome.Ok ? LogLevel.Action : LogLevel.Error,
             "action",
             $"{request.Type} : {outcome.Message}{(dryRun ? " (simulation)" : string.Empty)}",
-            new Dictionary<string, object?> { ["diskDeltaGB"] = delta, ["dryRun"] = dryRun });
+            new Dictionary<string, object?> { ["type"] = request.Type, ["diskDeltaGB"] = delta, ["dryRun"] = dryRun, ["auto"] = automatic, ["changed"] = outcome.Changed });
         return result;
     }
 }

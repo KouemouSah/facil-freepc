@@ -24,7 +24,7 @@ namespace FreeRes.Modules.Docker;
 ///     (Docker arrete) selon l'espace mort REEL (VHDX - donnees - plancher), repli sur la taille si jamais mesure.
 /// Module inactif si Docker Desktop n'est pas installe.
 /// </summary>
-public sealed class DockerModule : IResourceModule, IActionObserver
+public sealed class DockerModule : IResourceModule, IActionObserver, IStatusSource
 {
     public const string DockerPrune = "DockerPrune";
     public const string DockerTrim = "DockerTrim";
@@ -88,20 +88,34 @@ public sealed class DockerModule : IResourceModule, IActionObserver
         }
     }
 
+    /// <summary>Etat affiche : installation, fonctionnement au dernier cycle, derniere mesure, dates d'entretien.</summary>
+    public object? CurrentStatus => new DockerStatus(
+        _lastInstalled,
+        _lastRunning,
+        LastUsage,
+        _state?.GetDate(TrimmedAtKey),
+        _state?.GetDate(CompactedAtKey));
+
+    private volatile bool _lastInstalled;
+    private volatile bool _lastRunning;
+
     public async Task<ModuleEvaluation> EvaluateAsync(EngineContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (!_host.IsInstalled)
+        _lastInstalled = _host.IsInstalled;
+        if (!_lastInstalled)
         {
+            _lastRunning = false;
             return ModuleEvaluation.Empty;
         }
 
         var now = _time.GetLocalNow();
+        _lastRunning = _host.IsDockerRunning();
         var auto = new List<ActionRequest>();
         var proposals = new List<Proposal>();
         var severity = context.Snapshot.SystemDriveFreeGB < context.Thresholds.DiskFreeWarnGB ? Severity.Warn : Severity.Info;
 
-        if (_host.IsDockerRunning())
+        if (_lastRunning)
         {
             _state?.SetDate(OrphanSinceKey, null);
             if (IsTrimDue(now))

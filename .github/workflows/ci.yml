@@ -28,6 +28,7 @@ jobs:
           node-version: '20'
       - name: Compilation
         run: dotnet build FreeRes.sln -c Release -nologo
+      # Les tests d'interface (FreeRes.Ui.Tests) pilotent Microsoft Edge, preinstalle sur windows-latest (canal msedge).
       - name: Tests .NET
         run: dotnet test FreeRes.sln -c Release --no-build -nologo --logger "trx;LogFilePrefix=tests"
       - name: Tests et validation de l'extension Firefox

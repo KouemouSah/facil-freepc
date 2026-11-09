@@ -112,7 +112,13 @@ public sealed class DiskModuleTests : IDisposable
 
         var user = await catalog.Resolve(new ActionRequest(DiskModule.CleanUserZone, new Dictionary<string, string> { ["rule"] = "user-temp" })).Execute(new ActionRequest(DiskModule.CleanUserZone, new Dictionary<string, string> { ["rule"] = "user-temp" }), false, default);
         Assert.True(user.Ok);
+        Assert.True(user.Changed);
         Assert.False(File.Exists(old));
+
+        // Zone deja propre : succes, mais « rien fait » (n'apparait pas dans « Fait automatiquement »).
+        var again = await catalog.Resolve(new ActionRequest(DiskModule.CleanUserZone, new Dictionary<string, string> { ["rule"] = "user-temp" })).Execute(new ActionRequest(DiskModule.CleanUserZone, new Dictionary<string, string> { ["rule"] = "user-temp" }), false, default);
+        Assert.True(again.Ok);
+        Assert.False(again.Changed);
 
         var system = await catalog.Resolve(ActionRequest.Of(DiskModule.CleanSystemZones)).Execute(ActionRequest.Of(DiskModule.CleanSystemZones), false, default);
         Assert.True(system.Ok);
