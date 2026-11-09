@@ -1,5 +1,6 @@
 using FreeRes.Core.Actions;
 using FreeRes.Core.Engine;
+using FreeRes.Modules.Ai;
 using FreeRes.Modules.Apps;
 using FreeRes.Modules.Browsers;
 using FreeRes.Modules.Disk;
@@ -22,6 +23,7 @@ public static class ModulePack
         var docker = new DockerModule(services);
         var apps = new AppsModule(services);
         var browsers = new BrowsersModule(services);
+        var ai = new AiModule(services);
 
         void Register(ActionCatalog catalog)
         {
@@ -30,8 +32,9 @@ public static class ModulePack
             docker.RegisterActions(catalog);
             apps.RegisterActions(catalog);
             browsers.RegisterActions(catalog);
+            ai.RegisterActions(catalog);
         }
 
-        return new ModuleSetup([disk, windows, docker, apps, browsers], Register);
+        return new ModuleSetup([disk, windows, docker, apps, browsers, ai], Register);
     }
 }

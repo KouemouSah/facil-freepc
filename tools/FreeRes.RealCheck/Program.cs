@@ -24,6 +24,8 @@ namespace FreeRes.RealCheck;
 ///   service-manual &lt;nom&gt;      SetServiceManual reel puis restauration du type de demarrage d'origine (admin)
 ///   docker-cycle               Docker demarre : fstrim + mesure reels par le module
 ///   docker-compact             Docker arrete : compactage reel du VHDX par diskpart (admin)
+///   browsers / browser-restart &lt;id&gt;  etat des navigateurs / redemarrage reel (accord prealable)
+///   ai / ai-unload &lt;modele&gt;   applications d'IA (lecture seule) / dechargement reel d'un modele Ollama
 /// </summary>
 internal static class Program
 {
@@ -33,7 +35,7 @@ internal static class Program
     {
         if (args.Length == 0)
         {
-            Console.WriteLine("Commandes : inventory | startup-toggle <id> | process-stop | service-manual <nom> | docker-cycle | docker-compact");
+            Console.WriteLine("Commandes : inventory | startup-toggle <id> | process-stop | service-manual <nom> | docker-cycle | docker-compact | browsers | browser-restart <id> | ai | ai-unload <modele>");
             return 2;
         }
 
@@ -100,6 +102,33 @@ internal static class Program
                 Console.WriteLine($"Apres 15 s : lance={after?.Running} {after?.WorkingSetGB} GB, {after?.ProcessCount} processus");
                 return outcome.Ok && after?.Running == true ? 0 : 1;
             }
+
+            case "ai":
+            {
+                // Lecture seule : applications d'IA detectees, modeles charges et installes.
+                var ai = setup.Modules.OfType<FreeRes.Modules.Ai.AiModule>().Single();
+                var eval = await ai.EvaluateAsync(Context(), CancellationToken.None);
+                if (ai.LastStatus.Count == 0)
+                {
+                    Console.WriteLine("Aucune application d'IA locale detectee (Ollama, LM Studio, GPT4All, Jan) et aucun serveur Ollama en boucle locale.");
+                }
+
+                foreach (var a in ai.LastStatus)
+                {
+                    Console.WriteLine($"{a.Name,-10} installe={a.Installed,-5} proc={a.ProcessCount,-3} {a.WorkingSetGB,5} GB ; modeles {a.ModelsDiskGB} GB ({a.ModelsDir ?? "-"}) ; installes={a.InstalledModelCount} ; {a.Note}");
+                    foreach (var m in a.LoadedModels)
+                    {
+                        Console.WriteLine($"    charge : {m.Name} {Math.Round(m.SizeBytes / 1073741824d, 2)} GB (graphique {Math.Round(m.VramBytes / 1073741824d, 2)} GB) expire {m.ExpiresAt?.ToString("u", CultureInfo.InvariantCulture) ?? "-"}");
+                    }
+                }
+
+                Console.WriteLine($"Propositions : {string.Join(" | ", eval.Proposals.Select(p => $"{p.Id} ({p.Severity})"))}");
+                return 0;
+            }
+
+            case "ai-unload" when args.Length == 2:
+                // REEL : decharge un modele Ollama charge (il se rechargera a la prochaine demande) ; l'action verifie elle-meme le resultat.
+                return (await Run(FreeRes.Modules.Ai.AiModule.UnloadOllamaModel, ("model", args[1]))).Ok ? 0 : 1;
 
             case "process-stop":
                 return await ProcessStop(Context, Run, services);
