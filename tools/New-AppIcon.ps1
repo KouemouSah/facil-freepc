@@ -72,6 +72,14 @@ try {
         $b = New-SquareBitmap $src $s
         try { $b.Save((Join-Path $OutDir "wizard-small-$s.png"), [System.Drawing.Imaging.ImageFormat]::Png) } finally { $b.Dispose() }
     }
+
+    # Icones de l'extension Firefox (48 et 96 px, exigees par le manifeste).
+    $extIcons = Join-Path (Split-Path -Parent $PSScriptRoot) 'extensions\firefox\icons'
+    New-Item -ItemType Directory -Force -Path $extIcons | Out-Null
+    foreach ($s in 48, 96) {
+        $b = New-SquareBitmap $src $s
+        try { $b.Save((Join-Path $extIcons "icon-$s.png"), [System.Drawing.Imaging.ImageFormat]::Png) } finally { $b.Dispose() }
+    }
 }
 finally { $src.Dispose() }
 

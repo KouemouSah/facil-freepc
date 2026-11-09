@@ -88,6 +88,19 @@ internal static class Program
                 return 0;
             }
 
+            case "browser-restart" when args.Length == 2:
+            {
+                // REEL : ferme proprement puis relance le navigateur de l'utilisateur (accord prealable obligatoire).
+                var browsers = setup.Modules.OfType<FreeRes.Modules.Browsers.BrowsersModule>().Single();
+                var before = browsers.Inspect().SingleOrDefault(b => b.Id == args[1]);
+                Console.WriteLine($"Avant : {before?.Name} {before?.WorkingSetGB} GB, {before?.ProcessCount} processus ; {before?.RestartNote}");
+                var outcome = await Run(FreeRes.Modules.Browsers.BrowsersModule.RestartBrowser, ("browser", args[1]));
+                await Task.Delay(15000);
+                var after = browsers.Inspect().SingleOrDefault(b => b.Id == args[1]);
+                Console.WriteLine($"Apres 15 s : lance={after?.Running} {after?.WorkingSetGB} GB, {after?.ProcessCount} processus");
+                return outcome.Ok && after?.Running == true ? 0 : 1;
+            }
+
             case "process-stop":
                 return await ProcessStop(Context, Run, services);
 

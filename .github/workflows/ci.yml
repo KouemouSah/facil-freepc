@@ -1,5 +1,5 @@
-# Integration continue : compilation (avertissements = erreurs) + tests a chaque push / pull request.
-# PREPARE, NON ACTIVE : le depot distant n'existe pas encore (build local par build.ps1 en attendant).
+# Integration continue : compilation (avertissements = erreurs) + tests .NET et extension Firefox a chaque push / PR.
+# PREPARE, NON ACTIVE : GitHub Actions est desactive sur le depot (build local par build.ps1, consigne utilisateur).
 name: ci
 
 on:
@@ -23,10 +23,18 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       - name: Compilation
         run: dotnet build FreeRes.sln -c Release -nologo
-      - name: Tests
+      - name: Tests .NET
         run: dotnet test FreeRes.sln -c Release --no-build -nologo --logger "trx;LogFilePrefix=tests"
+      - name: Tests et validation de l'extension Firefox
+        shell: pwsh
+        run: |
+          node --test extensions/firefox/test
+          npx --yes web-ext@10.8.0 lint --source-dir extensions/firefox --ignore-files "test/**" --warnings-as-errors
       - name: Resultats de tests
         if: always()
         uses: actions/upload-artifact@v4

@@ -83,6 +83,14 @@ service sur la machine de développement), pour en faire un produit installable 
 | **Maintenance Windows** | — | Redémarrage en attente depuis plus de 12 h (critique, annulable), cache Windows Update et nettoyage DISM (UAC) — jamais pendant un redémarrage en attente |
 | **Docker / WSL** (si présents) | Arrêt de la machine virtuelle restée allumée sans Docker, récupération de l'espace libéré à l'intérieur de Docker, mesure de son contenu | Purge du cache de build et des images inutilisées (jamais les volumes), compactage du disque Docker quand l'espace mort réel le justifie (UAC) |
 | **Applications** | Inventaire des applications, de ce qui démarre avec Windows (Run, dossiers Démarrage, services, tâches de connexion) et de leur consommation | Désactiver le démarrage automatique d'une application gourmande en arrière-plan (réversible, comme le Gestionnaire des tâches), arrêter ses processus sans fenêtre, passer un service tiers en démarrage manuel (UAC) |
+| **Navigateurs** (Phase 3) | Mise en veille des onglets inactifs par la fonction **du navigateur lui-même** (économiseur de mémoire de Chrome, onglets en veille d'Edge) ; pour Firefox, qui ne décharge ses onglets qu'une fois la mémoire épuisée, **extension compagnon** Facil FreePC (onglets inactifs depuis 30 min, jamais l'onglet actif, épinglé ou qui joue du son) | Activer l'économiseur de mémoire s'il a été désactivé ; activer la restauration de session de Firefox ; installer l'extension ; **redémarrer proprement** un navigateur lourd ouvert depuis longtemps, uniquement quand la restauration de toutes les fenêtres est garantie |
+
+**Redémarrage des navigateurs : uniquement des méthodes vérifiées sur machine réelle.** Chrome et Edge :
+fermeture propre par le Gestionnaire de redémarrage de Windows (jamais forcée) puis relance avec restauration
+de la dernière session ; refusé si plusieurs profils sont ouverts (restauration non garantie). Firefox :
+commande « Quitter » envoyée seulement si sa fenêtre est au premier plan, et seulement si la restauration de
+session est activée. Brave, Opera et Vivaldi sont détectés et mesurés, mais leur redémarrage reste refusé tant
+qu'il n'a pas été vérifié.
 
 Jamais touchés : les composants Windows, les logiciels de sécurité, les pilotes (audio, saisie, graphiques)
 et Facil FreePC lui-même. Une action qui exige l'administrateur déclenche une demande UAC pour elle seule ;
@@ -96,7 +104,7 @@ si vous la refusez, la proposition reste en attente.
 | **0 — Socle** | Application de notification, fenêtre WebView2, serveur local sécurisé, installateur, désinstallation propre | Terminée |
 | **1 — Moteur** | Mesures de la mémoire et du disque, profil automatique du PC avec seuils adaptés à sa mémoire, file de décisions (approuver, rejeter, reporter), journal et historique | Terminée |
 | **2 — Modules système** | Nettoyage du disque limité aux zones sûres, maintenance Windows Update (avec accord UAC), Docker et WSL s'ils sont présents, inventaire des applications et de ce qui démarre avec Windows | Terminée |
-| **3 — Navigateurs** | Détection de Firefox, Chrome, Edge, Brave, Opera et Vivaldi ; mise en veille automatique des onglets inactifs ; redémarrage propre du navigateur sur votre clic, avec contrôle de la restauration de session | À venir |
+| **3 — Navigateurs** | Détection de Firefox, Chrome, Edge, Brave, Opera et Vivaldi ; mise en veille automatique des onglets inactifs ; redémarrage propre du navigateur sur votre clic, avec contrôle de la restauration de session | En cours : module livré, extension Firefox prête (signature Mozilla en attente) |
 | **4 — IA** | Détection des applications d'IA, modèles chargés, mémoire vidéo et disque ; propositions de décharger un modèle inactif ou d'arrêter un serveur inutilisé (jamais de suppression) | À venir |
 | **5 — Interface** | Tableau de bord sans défilement (santé, décisions, actions faites, applications, navigateurs, IA, historique), écran « Comment ça marche », notifications Windows | À venir |
 | **6 — Distribution** | Installateur final, mises à jour, tests sur Windows 10 et 11 vierges, première version publiée avec son empreinte SHA-256 | À venir |
@@ -175,7 +183,13 @@ Nom commercial : **Facil FreePC** (exécutable `FacilFreePC.exe`). Nom de code i
 
 ### Construire
 
-Prérequis : SDK .NET 10 (version fixée par `global.json`), Inno Setup 7 (Inno Setup 6 accepté).
+Prérequis : SDK .NET 10 (version fixée par `global.json`), Inno Setup 7 (Inno Setup 6 accepté), Node.js 20+
+(tests de l'extension Firefox et outil officiel `web-ext` de Mozilla, version figée).
+
+**Signature de l'extension Firefox** : définir les variables d'environnement `AMO_JWT_ISSUER` et `AMO_JWT_SECRET`
+(clés d'API de addons.mozilla.org) avant `build.ps1` ; l'extension est alors signée par Mozilla (canal non
+répertorié) et proposée à l'installation par FreePC. Sans ces clés, le paquet est construit **non signé** :
+Firefox standard le refuse, et FreePC ne le propose donc pas.
 
 ```powershell
 .\build.ps1                 # séquence complète

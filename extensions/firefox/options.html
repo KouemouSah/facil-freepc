@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Facil FreePC</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <h1>Facil FreePC — mise en veille des onglets</h1>
+  <p class="muted">Les onglets inactifs sont mis en veille pour libérer la mémoire. Ils restent dans la barre
+    d'onglets et se rechargent au clic. Jamais l'onglet actif, un onglet épinglé ou qui joue du son.</p>
+  <label class="row"><input type="checkbox" id="enabled"> Mise en veille automatique activée</label>
+  <label class="row">Inactifs depuis au moins
+    <input type="number" id="minutes" min="5" max="1440" step="5"> minutes</label>
+  <p id="stats" class="muted"></p>
+  <p id="saved" class="muted" aria-live="polite"></p>
+  <script src="policy.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

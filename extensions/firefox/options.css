@@ -1,0 +1,9 @@
+body { font: 14px/1.5 system-ui, sans-serif; margin: 16px; max-width: 560px; color: #1c2230; }
+h1 { font-size: 16px; margin: 0 0 8px; }
+.muted { color: #5d6676; }
+.row { display: block; margin: 10px 0; }
+input[type="number"] { width: 72px; }
+@media (prefers-color-scheme: dark) {
+  body { background: #1b2029; color: #e6e9ef; }
+  .muted { color: #9aa3b2; }
+}

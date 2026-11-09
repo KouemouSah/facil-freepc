@@ -13,6 +13,9 @@
 #ifndef SourceExe
   #error SourceExe non defini (utiliser build.ps1)
 #endif
+#ifndef ExtensionXpi
+  #error ExtensionXpi non defini (utiliser build.ps1)
+#endif
 
 [Setup]
 ; AppId : NE JAMAIS CHANGER (identifie le produit pour les mises a jour et la desinstallation).
@@ -65,6 +68,9 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "{#SourceExe}"; DestDir: "{app}"; DestName: "{#AppExe}"; Flags: ignoreversion
+
+; Extension compagnon Firefox (proposee a l'installation dans Firefox par FreePC seulement si signee par Mozilla).
+Source: "{#ExtensionXpi}"; DestDir: "{app}\extensions"; DestName: "facil-freepc-firefox.xpi"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"

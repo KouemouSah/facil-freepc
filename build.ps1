@@ -48,6 +48,35 @@ else {
     Invoke-Checked 'dotnet' @('test', (Join-Path $root 'FreeRes.sln'), '-c', 'Release', '--no-build', '-nologo', '-v', 'q')
 }
 
+Step 'Extension Firefox (tests Node, validation Mozilla, paquet)'
+# Prerequis : Node.js (tests de la politique de mise en veille + outil officiel web-ext de Mozilla).
+$extDir = Join-Path $root 'extensions\firefox'
+$webExt = 'web-ext@10.8.0'   # version figee : construction reproductible
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'Node.js est requis pour construire et tester l''extension Firefox' }
+# Version du manifeste = version du produit (source unique : Directory.Build.props).
+$manifestPath = Join-Path $extDir 'manifest.json'
+$manifestText = [IO.File]::ReadAllText($manifestPath)
+$synced = [regex]::Replace($manifestText, '"version":\s*"[^"]*"', "`"version`": `"$version`"", 1)
+if ($synced -ne $manifestText) { [IO.File]::WriteAllText($manifestPath, $synced, (New-Object Text.UTF8Encoding($false))); Write-Host "   manifest.json -> $version" }
+if (-not $SkipTests) { Invoke-Checked 'node' @('--test', (Join-Path $extDir 'test')) }
+Invoke-Checked 'npx' @('--yes', $webExt, 'lint', '--source-dir', $extDir, '--ignore-files', 'test/**', '--warnings-as-errors', '--output', 'text')
+$extOut = Join-Path $artifacts 'extension'
+New-Item -ItemType Directory -Force -Path $extOut | Out-Null
+$xpi = Join-Path $extOut 'facil-freepc-firefox.xpi'
+if ($env:AMO_JWT_ISSUER -and $env:AMO_JWT_SECRET) {
+    # Signature Mozilla (canal « unlisted » : non publie sur le catalogue, installable par Firefox standard).
+    Invoke-Checked 'npx' @('--yes', $webExt, 'sign', '--channel', 'unlisted', '--source-dir', $extDir, '--artifacts-dir', $extOut,
+        '--ignore-files', 'test/**', '--api-key', $env:AMO_JWT_ISSUER, '--api-secret', $env:AMO_JWT_SECRET)
+    $signed = Get-ChildItem $extOut -Filter '*.xpi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if (-not $signed) { throw 'Signature Mozilla : aucun .xpi produit' }
+    Move-Item $signed.FullName $xpi -Force
+    Write-Host '   extension SIGNEE par Mozilla'
+}
+else {
+    Invoke-Checked 'npx' @('--yes', $webExt, 'build', '--source-dir', $extDir, '--artifacts-dir', $extOut, '--ignore-files', 'test/**', '--overwrite-dest', '--filename', 'facil-freepc-firefox.xpi')
+    Write-Warning 'Extension NON signee (AMO_JWT_ISSUER / AMO_JWT_SECRET absents) : Firefox standard refusera de l''installer ; FreePC ne la proposera pas.'
+}
+
 Step 'Publication (exe unique autonome win-x64)'
 Invoke-Checked 'dotnet' @('publish', (Join-Path $root 'src\FreeRes.App\FreeRes.App.csproj'), '-c', 'Release', '-r', 'win-x64', '--self-contained', 'true', '-o', $publish, '-nologo', '-v', 'q')
 $exe = Join-Path $publish 'FacilFreePC.exe'
@@ -56,7 +85,7 @@ $extra = @(Get-ChildItem $publish -File | Where-Object { $_.Name -ne 'FacilFreeP
 if ($extra.Count -gt 0) { throw "La publication doit produire un exe unique ; fichiers en trop : $($extra.Name -join ', ')" }
 
 Step 'Installeur Inno Setup'
-Invoke-Checked $Iscc @('/Q', "/DAppVersion=$version", "/DSourceExe=$exe", (Join-Path $root 'installer\FacilFreePC.iss'))
+Invoke-Checked $Iscc @('/Q', "/DAppVersion=$version", "/DSourceExe=$exe", "/DExtensionXpi=$xpi", (Join-Path $root 'installer\FacilFreePC.iss'))
 $setup = Join-Path $artifacts "FacilFreePC-Setup-$version.exe"
 if (-not (Test-Path $setup)) { throw "Installeur introuvable : $setup" }
 
