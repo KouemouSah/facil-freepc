@@ -119,6 +119,70 @@ public sealed class SafeCleanerTests : IDisposable
         Assert.True(File.Exists(precieux));
     }
 
+    [Fact]
+    public void TOCTOU_un_fichier_atteint_a_travers_une_jonction_substituee_n_est_jamais_supprime()
+    {
+        // Resultat d'une attaque reussie par substitution : le chemin TEXTE est sous la racine
+        // (zone\dossier\systeme.dll) mais son chemin REEL est hors racine. La suppression doit etre refusee.
+        var victime = Fixtures.AgedFile(_dir.Sub(@"systeme\systeme.dll"), 90, now: _time.Now);
+        Directory.CreateDirectory(_dir.Sub("zone"));
+        Fixtures.Junction(_dir.Sub(@"zone\dossier"), _dir.Sub("systeme"));
+        var realRoot = SecureDelete.RealDirectoryPath(_dir.Sub("zone"))!;
+
+        Assert.Equal(SecureDelete.Result.OutsideRoot, SecureDelete.TryDeleteWithinRoot(_dir.Sub(@"zone\dossier\systeme.dll"), realRoot));
+        Assert.True(File.Exists(victime));
+    }
+
+    [Fact]
+    public void Un_lien_n_est_supprime_que_sur_autorisation_et_jamais_sa_cible()
+    {
+        var cible = Fixtures.AgedFile(_dir.Sub(@"cible\f.bin"), 90, now: _time.Now);
+        Directory.CreateDirectory(_dir.Sub("zone"));
+        Fixtures.Junction(_dir.Sub(@"zone\lien"), _dir.Sub("cible"));
+        var realRoot = SecureDelete.RealDirectoryPath(_dir.Sub("zone"))!;
+
+        Assert.Equal(SecureDelete.Result.Reparse, SecureDelete.TryDeleteWithinRoot(_dir.Sub(@"zone\lien"), realRoot));
+        Assert.True(Directory.Exists(_dir.Sub(@"zone\lien")));
+        Assert.Equal(SecureDelete.Result.Deleted, SecureDelete.TryDeleteWithinRoot(_dir.Sub(@"zone\lien"), realRoot, allowReparseLink: true));
+        Assert.False(Directory.Exists(_dir.Sub(@"zone\lien")));
+        Assert.True(File.Exists(cible));
+    }
+
+    [Fact]
+    public void Racine_qui_est_elle_meme_une_jonction_refusee()
+    {
+        Fixtures.AgedFile(_dir.Sub(@"vraie\f.bin"), 90, now: _time.Now);
+        Fixtures.Junction(_dir.Sub("zone"), _dir.Sub("vraie"));
+        var ex = Assert.Throws<InvalidOperationException>(() => _cleaner.RemoveOlderThan(_dir.Sub("zone"), 7));
+        Assert.Contains("lien", ex.Message, StringComparison.Ordinal);
+        Assert.True(File.Exists(_dir.Sub(@"vraie\f.bin")));
+    }
+
+    [Fact]
+    public void Fichier_en_lecture_seule_supprime_par_handle()
+    {
+        var f = Fixtures.AgedFile(_dir.Sub(@"zone\ro.tmp"), 30, now: _time.Now);
+        File.SetAttributes(f, FileAttributes.ReadOnly);
+        File.SetCreationTime(f, _time.Now.LocalDateTime.AddDays(-30));
+        var r = _cleaner.RemoveOlderThan(_dir.Sub("zone"), 7);
+        Assert.Equal(1, r.Files);
+        Assert.False(File.Exists(f));
+    }
+
+    [Fact]
+    public void Fichier_verrouille_ignore_et_compte()
+    {
+        var f = Fixtures.AgedFile(_dir.Sub(@"zone\ouvert.tmp"), 30, now: _time.Now);
+        using (new FileStream(f, FileMode.Open, FileAccess.Read, FileShare.Read))   // pas de partage « suppression »
+        {
+            var r = _cleaner.RemoveOlderThan(_dir.Sub("zone"), 7);
+            Assert.Equal(0, r.Files);
+            Assert.Equal(1, r.Skipped);
+        }
+
+        Assert.True(File.Exists(f));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(3651)]

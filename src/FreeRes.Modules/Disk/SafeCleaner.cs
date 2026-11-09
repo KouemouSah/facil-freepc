@@ -65,6 +65,9 @@ public sealed class SafeCleaner(IReadOnlyList<string> allowedRoots, TimeProvider
             return new CleanResult(root, 0, 0, 0, 0, dryRun, matched);
         }
 
+        // Racine resolue PAR HANDLE : toute suppression doit rester sous ce chemin reel (cf. SecureDelete).
+        var realRoot = SecureDelete.RealDirectoryPath(root)
+            ?? throw new InvalidOperationException($"Racine inaccessible ou lien (jonction), refusee : {root}");
         var cutoff = time.GetLocalNow().LocalDateTime.AddDays(-olderThanDays);
         var exclude = excludeDirs ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var rootInfo = new DirectoryInfo(root);
@@ -91,7 +94,7 @@ public sealed class SafeCleaner(IReadOnlyList<string> allowedRoots, TimeProvider
 
                 try
                 {
-                    DeleteTree(d);
+                    DeleteTree(d, realRoot);
                     freed += size.Bytes;
                     files += size.Files;
                     dirs++;
@@ -154,21 +157,15 @@ public sealed class SafeCleaner(IReadOnlyList<string> allowedRoots, TimeProvider
                     continue;
                 }
 
-                try
+                var length = file.Length;
+                if (SecureDelete.TryDeleteWithinRoot(file.FullName, realRoot) == SecureDelete.Result.Deleted)
                 {
-                    var length = file.Length;
-                    if (file.IsReadOnly)
-                    {
-                        file.IsReadOnly = false;
-                    }
-
-                    file.Delete();
                     freed += length;
                     files++;
                 }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                else
                 {
-                    skipped++;   // fichier verrouille par un programme en cours
+                    skipped++;   // verrouille, devenu un lien, ou chemin reel hors racine (jonction substituee)
                 }
             }
         }
@@ -186,12 +183,14 @@ public sealed class SafeCleaner(IReadOnlyList<string> allowedRoots, TimeProvider
                         continue;
                     }
 
-                    d.Delete();
-                    dirs++;
+                    if (SecureDelete.TryDeleteWithinRoot(d.FullName, realRoot) == SecureDelete.Result.Deleted)
+                    {
+                        dirs++;
+                    }
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    // dossier utilise : conserve
+                    // dossier utilise ou inaccessible : conserve
                 }
             }
         }
@@ -262,34 +261,33 @@ public sealed class SafeCleaner(IReadOnlyList<string> allowedRoots, TimeProvider
         }
     }
 
-    /// <summary>Suppression recursive qui supprime une jonction comme un lien, sans jamais entrer dedans.</summary>
-    private static void DeleteTree(DirectoryInfo dir)
+    /// <summary>
+    /// Suppression recursive d'un dossier perime. Chaque element est supprime PAR HANDLE apres verification de son
+    /// chemin reel (SecureDelete) : si un sous-dossier est remplace par une jonction pendant l'operation, ses
+    /// elements resolvent hors de la racine et sont refuses. Un lien rencontre est retire lui-meme (son objet
+    /// lien, ouvert sans le suivre), jamais parcouru.
+    /// </summary>
+    private static void DeleteTree(DirectoryInfo dir, string realRoot)
     {
+        var failures = 0;
         foreach (var item in dir.GetFileSystemInfos())
         {
-            if (item is DirectoryInfo sub)
+            if (item is DirectoryInfo sub && !IsReparse(sub))
             {
-                if (IsReparse(sub))
-                {
-                    sub.Delete();   // retire le lien seul, la cible reste intacte
-                }
-                else
-                {
-                    DeleteTree(sub);
-                }
+                DeleteTree(sub, realRoot);
+                continue;
             }
-            else
-            {
-                var f = (FileInfo)item;
-                if (f.IsReadOnly)
-                {
-                    f.IsReadOnly = false;
-                }
 
-                f.Delete();
+            var r = SecureDelete.TryDeleteWithinRoot(item.FullName, realRoot, allowReparseLink: IsReparse(item));
+            if (r != SecureDelete.Result.Deleted)
+            {
+                failures++;
             }
         }
 
-        dir.Delete();
+        if (failures > 0 || SecureDelete.TryDeleteWithinRoot(dir.FullName, realRoot) != SecureDelete.Result.Deleted)
+        {
+            throw new IOException($"Suppression partielle de {dir.FullName}");
+        }
     }
 }
