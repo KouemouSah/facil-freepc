@@ -7,7 +7,9 @@ using FreeRes.Modules.Updates;
 //   new-key                 cree la cle (refuse si elle existe), l'enregistre protegee par DPAPI (compte Windows
 //                           courant) et affiche la cle PUBLIQUE a placer dans UpdateKeys.cs
 //   export-ci               ecrit la cle privee (PKCS#8 base64) sur la sortie standard, A REDIRIGER vers
-//                           « gh secret set UPDATE_SIGNING_KEY » (jamais vers l'ecran)
+//                           « gh secret set UPDATE_SIGNING_KEY » (jamais vers l'ecran). Depuis Windows PowerShell 5.1,
+//                           passer par cmd (cmd /c "FreeRes.UpdateSign.exe export-ci | gh secret set UPDATE_SIGNING_KEY") :
+//                           le tube PowerShell ajoute un BOM au secret, meme avec $OutputEncoding en ASCII (constate).
 //   manifest <version> <url> <sha256> <notes> <sortie.json>
 //   sign <latest.json>      ecrit latest.json.sig puis la reverifie avec la cle publique compilee dans l'application
 // Cle privee : variable UPDATE_SIGNING_KEY (CI) sinon fichier protege %APPDATA%\FacilFreePC-signing\update-key.dpapi.
@@ -77,7 +79,16 @@ static byte[] LoadPrivateKey(string keyFile)
 {
     if (Environment.GetEnvironmentVariable("UPDATE_SIGNING_KEY") is { Length: > 0 } ci)
     {
-        return Convert.FromBase64String(ci.Trim());
+        // Windows PowerShell 5.1 prefixe d'un BOM UTF-8 (U+FEFF) toute chaine envoyee par « | » a un programme natif :
+        // un secret cree par « export-ci | gh secret set » depuis ce shell le contient. Il n'appartient pas a la cle.
+        try
+        {
+            return Convert.FromBase64String(ci.Trim().TrimStart('﻿').Trim());
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("UPDATE_SIGNING_KEY n'est pas une clé PKCS#8 en base64 valide : recréer le secret avec « export-ci »");
+        }
     }
 
     if (!File.Exists(keyFile))
