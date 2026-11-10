@@ -60,7 +60,14 @@ $manifestPath = Join-Path $extDir 'manifest.json'
 $manifestText = [IO.File]::ReadAllText($manifestPath)
 $synced = [regex]::Replace($manifestText, '"version":\s*"[^"]*"', "`"version`": `"$version`"", 1)
 if ($synced -ne $manifestText) { [IO.File]::WriteAllText($manifestPath, $synced, (New-Object Text.UTF8Encoding($false))); Write-Host "   manifest.json -> $version" }
-if (-not $SkipTests) { Invoke-Checked 'node' @('--test', (Join-Path $extDir 'test')) }
+if (-not $SkipTests) {
+    # Liste EXPLICITE de fichiers, chemins relatifs a la racine en « / » : Node 20 refuse les motifs, Node >= 21 lit
+    # chaque argument comme un motif glob (un dossier n'y est plus parcouru, un chemin absolu en « \ » n'y correspond a rien).
+    $extTests = @(Get-ChildItem (Join-Path $extDir 'test') -Filter '*.test.cjs' -File | ForEach-Object { 'extensions/firefox/test/' + $_.Name })
+    if ($extTests.Count -eq 0) { throw 'Aucun test de l''extension Firefox trouve (extensions/firefox/test/*.test.cjs)' }
+    Push-Location $root
+    try { Invoke-Checked 'node' (@('--test') + $extTests) } finally { Pop-Location }
+}
 Invoke-Checked 'npx' @('--yes', $webExt, 'lint', '--source-dir', $extDir, '--ignore-files', 'test/**', '--warnings-as-errors', '--output', 'text')
 $extOut = Join-Path $artifacts 'extension'
 New-Item -ItemType Directory -Force -Path $extOut | Out-Null

@@ -34,8 +34,14 @@ jobs:
       - name: Tests et validation de l'extension Firefox
         shell: pwsh
         run: |
-          node --test extensions/firefox/test
+          # pwsh ne juge l'etape que sur la DERNIERE commande : chaque commande native verifie donc son code de sortie.
+          # Liste explicite de fichiers : Node >= 21 lit les arguments comme des motifs glob et ne parcourt plus un dossier.
+          $tests = @(Get-ChildItem extensions/firefox/test -Filter '*.test.cjs' -File | ForEach-Object { "extensions/firefox/test/$($_.Name)" })
+          if ($tests.Count -eq 0) { throw 'Aucun test de l''extension Firefox trouve' }
+          node --test @tests
+          if ($LASTEXITCODE -ne 0) { throw "Tests de l'extension Firefox en echec (code $LASTEXITCODE)" }
           npx --yes web-ext@10.8.0 lint --source-dir extensions/firefox --ignore-files "test/**" --warnings-as-errors
+          if ($LASTEXITCODE -ne 0) { throw "web-ext lint en echec (code $LASTEXITCODE)" }
       - name: Resultats de tests
         if: always()
         uses: actions/upload-artifact@v7
