@@ -9,6 +9,10 @@
 #define AppDataId "FacilFreePC"
 #define AppPublisher "Emac SAH"
 #define AppCopyright "Copyright (c) 2026 EMAC SAH AI Solutions Architect"
+; Compilateur fige : meme version en local et en CI (tools\Install-InnoSetup.ps1). Plus ancien = refus, pas divergence.
+#if VER < EncodeVer(7,1,1)
+  #error Inno Setup 7.1.1 minimum requis : lancer tools\Install-InnoSetup.ps1
+#endif
 #ifndef AppVersion
   #error AppVersion non defini (utiliser build.ps1)
 #endif

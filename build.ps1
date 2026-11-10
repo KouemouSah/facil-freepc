@@ -3,11 +3,12 @@
 .SYNOPSIS
   Construction locale de Facil FreePC : compilation (avertissements = erreurs) -> tests -> publication
   d'un exe unique autonome -> installeur Inno Setup -> empreinte SHA-256 -> manifeste de mise a jour signe.
-  Meme sequence que .github\workflows\release.yml (a activer plus tard).
+  Meme sequence que .github\workflows\release.yml (qui construit les versions publiees).
 .PARAMETER SkipTests
   A n'utiliser que pour un essai rapide : une version distribuee doit TOUJOURS passer les tests.
 .PARAMETER Iscc
-  Chemin de ISCC.exe ; par defaut : variable INNO_ISCC, puis Inno Setup 7, puis 6.
+  Chemin de ISCC.exe ; par defaut : variable INNO_ISCC, puis Inno Setup 7. Version exigee par installer\FacilFreePC.iss ;
+  l'installer avec tools\Install-InnoSetup.ps1 (meme version que la CI).
 .PARAMETER Notes
   Notes de version (une phrase) affichees dans la decision de mise a jour.
 #>
@@ -31,12 +32,9 @@ $version = ($props.Project.PropertyGroup | Where-Object { $_.Version } | Select-
 if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Version invalide dans Directory.Build.props : '$version'" }
 
 if (-not $Iscc) {
-    $Iscc = @($env:INNO_ISCC,
-        'C:\Program Files\Inno Setup 7\ISCC.exe',
-        'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
-        (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe')) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+    $Iscc = @($env:INNO_ISCC, 'C:\Program Files\Inno Setup 7\ISCC.exe') | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 }
-if (-not $Iscc) { throw 'ISCC.exe introuvable : installez Inno Setup ou passez -Iscc' }
+if (-not $Iscc) { throw 'ISCC.exe introuvable : lancer tools\Install-InnoSetup.ps1 (ou passer -Iscc)' }
 
 Write-Host "Facil FreePC $version  |  ISCC : $Iscc"
 if (Test-Path $artifacts) { Remove-Item $artifacts -Recurse -Force }
@@ -121,6 +119,13 @@ if ($env:UPDATE_SIGNING_KEY -or (Test-Path $keyFile)) {
 else {
     Remove-Item "$manifest.sig" -ErrorAction SilentlyContinue
     Write-Warning 'Manifeste NON signe (cle absente) : les versions installees ignoreront cette publication.'
+}
+# Poste de publication seulement (la CI n'a que le secret) : rappel si la cle n'a pas de sauvegarde hors du poste.
+if (-not $env:GITHUB_ACTIONS) {
+    & dotnet @($sign + @('backup-status'))
+    # Code 3 = rappel, pas un echec : il ne doit pas devenir le code de sortie de build.ps1.
+    if ($LASTEXITCODE -eq 3) { Write-Warning 'Cle de signature NON sauvegardee hors de ce poste : voir README, section Cle de signature.'; $global:LASTEXITCODE = 0 }
+    elseif ($LASTEXITCODE -ne 0) { throw "backup-status a echoue (code $LASTEXITCODE)" }
 }
 
 Write-Host "`nOK : $setup" -ForegroundColor Green

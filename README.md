@@ -213,8 +213,30 @@ Nom commercial : **Facil FreePC** (exécutable `FacilFreePC.exe`). Nom de code i
 
 ### Construire
 
-Prérequis : SDK .NET 10 (version fixée par `global.json`), Inno Setup 7 (Inno Setup 6 accepté), Node.js 20+
-(tests de l'extension Firefox et outil officiel `web-ext` de Mozilla, version figée).
+Prérequis : SDK .NET 10 (version fixée par `global.json`), **Inno Setup 7.1.1** (version figée, identique à la CI :
+`tools\Install-InnoSetup.ps1` l'installe après contrôle de l'empreinte et du signataire ; l'installeur refuse de se
+compiler avec une version plus ancienne), Node.js 22 (tests de l'extension Firefox et outil officiel `web-ext` de
+Mozilla, version figée).
+
+### Clé de signature des mises à jour
+
+La clé privée signe `latest.json` ; sa clé publique est compilée dans l'application. **Perdue = plus aucune mise à
+jour acceptée par les versions installées.** La copie de travail (`%APPDATA%\FacilFreePC-signing\update-key.dpapi`)
+est liée au compte Windows du poste : ce n'est pas une sauvegarde.
+
+```powershell
+$sign = 'tools\FreeRes.UpdateSign\bin\Release\net10.0-windows10.0.17763.0\FreeRes.UpdateSign.exe'
+& $sign backup '<dossier synchronisé hors du poste>\cle-signature-mises-a-jour.pem'   # sauvegarde chiffrée
+& $sign verify-backup      # déchiffre et contrôle la sauvegarde mémorisée
+& $sign restore <fichier>  # nouveau poste : recrée la clé de travail
+& $sign backup-status      # sans phrase secrète (rappel automatique dans build.ps1)
+```
+
+Sauvegarde : PKCS#8 chiffré (AES-256, PBKDF2-SHA256, 600 000 itérations), lisible sur tout poste, refusée si elle ne
+correspond pas à la clé publique de l'application. **Conserver la phrase secrète ailleurs que le fichier.** Lecture
+automatique : si la clé de travail manque, la signature lit la sauvegarde mémorisée (ou `UPDATE_SIGNING_KEY_BACKUP`),
+demande la phrase (ou `UPDATE_SIGNING_KEY_PASSPHRASE`) et restaure la clé de travail. Secret de la CI :
+`cmd /c "<exe> export-ci | gh secret set UPDATE_SIGNING_KEY"` (le tube de Windows PowerShell 5.1 ajoute un BOM).
 
 **Signature de l'extension Firefox** : définir les variables d'environnement `AMO_JWT_ISSUER` et `AMO_JWT_SECRET`
 (clés d'API de addons.mozilla.org) avant `build.ps1` ; l'extension est alors signée par Mozilla (canal non
@@ -223,7 +245,7 @@ Firefox standard le refuse, et FreePC ne le propose donc pas.
 
 ```powershell
 .\build.ps1                 # séquence complète
-.\build.ps1 -Iscc <chemin>  # ISCC.exe explicite (sinon : variable INNO_ISCC, puis Inno Setup 7, puis 6)
+.\build.ps1 -Iscc <chemin>  # ISCC.exe explicite (sinon : variable INNO_ISCC, puis Inno Setup 7)
 .\build.ps1 -SkipTests      # essai rapide uniquement : une version distribuée passe TOUJOURS les tests
 ```
 
@@ -249,12 +271,13 @@ Tests seuls : `dotnet test FreeRes.sln`.
 | `src/FreeRes.Modules` | Modules et leurs actions : `Disk` (nettoyeur sûr `SafeCleaner` + suppression par handle `SecureDelete`), `Windows` (maintenance), `Docker` (WSL/VHDX), `Apps` (inventaire, démarrage, services) ; `ModulePack` les assemble |
 | `src/FreeRes.Host` | Serveur Kestrel sur **127.0.0.1** (port choisi par le système), middleware de sécurité, boucle de surveillance en arrière-plan, API (`/api/health`, `/api/state`, `/api/history`, `/api/modules/{nom}`, `/api/icons/{module}/{id}` (PNG ou 204), et en POST seulement `/api/proposals/{id}/approve|snooze|reject`, `/api/cycle`), interface embarquée (`wwwroot`). L'interface ne peut que décider des propositions du moteur : aucune route n'accepte un type d'action |
 | `src/FreeRes.App` | `FacilFreePC.exe` : instance unique, icône de notification, fenêtre WebView2 avec profil dédié |
-| `tests/FreeRes.*.Tests` | xUnit : Core, sécurité du serveur par requêtes HTTP réelles, coquille Windows (instance unique, dimensionnement de la fenêtre) |
+| `tests/FreeRes.*.Tests` | xUnit : Core, sécurité du serveur par requêtes HTTP réelles, coquille Windows (instance unique, dimensionnement de la fenêtre), clé de signature (sauvegarde chiffrée, restauration, lecture automatique, refus) |
 | `tests/FreeRes.Ui.Tests` | Bout en bout avec Playwright sur le **Microsoft Edge installé** (aucun navigateur téléchargé) : décisions, vues, absence de défilement à la taille réelle de la zone cliente (1163x581 à 150 %) et barre entière de 1266 à 886 points de large, en thème clair et sombre, visite animée (lecture, pause, chapitres, réduction des animations), icônes, données affichées en texte, jeton et origine ; captures dans `artifacts\ui` |
 | `installer/FacilFreePC.iss` | Inno Setup : installation par utilisateur, démarrage de session, fermeture avant mise à jour ou désinstallation |
 | `tools/New-AppIcon.ps1` | Génère `assets/app.ico` (multi-tailles) à partir de l'icône de marque |
 | `tools/New-IconSprite.py` | Génère `wwwroot/icons.svg` (icônes Lucide retenues + licence complète) depuis le paquet `lucide-static` |
-| `tools/FreeRes.UpdateSign` | Clé de signature des mises à jour : `new-key` (une seule fois, clé protégée par DPAPI), `manifest`, `sign` (utilisés par `build.ps1`), `export-ci` (vers le secret GitHub, jamais à l'écran) |
+| `tools/FreeRes.UpdateSign` | Clé de signature des mises à jour : `new-key` (une seule fois, clé protégée par DPAPI), `backup` / `verify-backup` / `restore` / `backup-status` (sauvegarde chiffrée, voir plus haut), `manifest`, `sign` (utilisés par `build.ps1`), `export-ci` (vers le secret GitHub, jamais à l'écran) |
+| `tools/Install-InnoSetup.ps1` | Installe Inno Setup à la version figée (empreinte SHA-256 et signataire vérifiés, fichier verrouillé jusqu'à l'exécution) ; utilisé par la CI et pour équiper un poste |
 | `tools/Test-Installer.ps1` | Essai d'installation sur machine VIERGE : installation silencieuse, lancement, refus du retour en arrière, mise à jour avec relance, désinstallation, données conservées |
 | `tools/Start-SandboxTest.ps1` | Lance `Test-Installer.ps1` dans le Bac à sable Windows (Windows 11 vierge, sans réseau) avec deux installateurs d'essai |
 | `tools/New-DarkLogo.ps1` | Génère `assets/logo-dark.png`, variante du logo pour fond sombre |

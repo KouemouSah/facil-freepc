@@ -34,7 +34,7 @@ Copy-Item $Setup $inputs
 Copy-Item (Join-Path $PSScriptRoot 'Test-Installer.ps1') $inputs
 
 # Installeurs d'essai : meme exe publie, seule la version de l'installeur change.
-$iscc = @($env:INNO_ISCC, 'C:\Program Files\Inno Setup 7\ISCC.exe', 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe') | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+$iscc = @($env:INNO_ISCC, 'C:\Program Files\Inno Setup 7\ISCC.exe') | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 $xpi = Get-ChildItem (Join-Path $artifacts 'extension') -Filter *.xpi -ErrorAction SilentlyContinue | Select-Object -First 1
 foreach ($v in $older, $newer) {
     & $iscc /Q "/DAppVersion=$v" "/DSourceExe=$(Join-Path $artifacts 'publish\FacilFreePC.exe')" "/DExtensionXpi=$($xpi.FullName)" "/O$inputs" (Join-Path $root 'installer\FacilFreePC.iss')
